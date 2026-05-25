@@ -1,0 +1,277 @@
+// AlertManager.swift — Notifications and MQTT alerts for SentinelCore
+// Swift 6 / macOS 14
+// Uses UserNotifications and Network.framework; no external dependencies.
+
+import Foundation
+import UserNotifications
+import Network
+
+// MARK: - AlertManager
+
+actor AlertManager {
+
+    // MARK: - Notification permission
+
+    func requestNotificationPermission() async {
+        let center = UNUserNotificationCenter.current()
+        _ = try? await center.requestAuthorization(options: [.alert, .sound, .badge])
+    }
+
+    // MARK: - Detection alert
+
+    func sendDetectionAlert(event: DetectionEvent, cameraName: String) async {
+        guard !inQuietHours() else { return }
+
+        let className = event.detectedClasses.first?.rawValue.capitalized ?? "Object"
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .medium
+        let timeStr = formatter.string(from: event.timestamp)
+
+        let content = UNMutableNotificationContent()
+        content.title    = "McBlink: \(className) detected"
+        content.subtitle = cameraName
+        content.body     = "Detected at \(timeStr)"
+        content.sound    = .defaultCritical
+
+        let request = UNNotificationRequest(
+            identifier: "detection-\(event.id.uuidString)",
+            content: content,
+            trigger: nil
+        )
+        try? await UNUserNotificationCenter.current().add(request)
+
+        // Also publish via MQTT if configured.
+        if let (host, port, prefix) = mqttConfig() {
+            let topic   = "\(prefix)/detection/\(event.cameraID.uuidString)"
+            let payload = try? JSONEncoder().encode(event)
+            await publishMQTT(host: host, port: port, topic: topic, payload: payload ?? Data())
+        }
+    }
+
+    // MARK: - Camera offline alert
+
+    func sendCameraOfflineAlert(cameraID: UUID, cameraName: String) async {
+        guard !inQuietHours() else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title    = "McBlink: Camera offline"
+        content.subtitle = cameraName
+        content.body     = "Camera has been offline for more than 60 seconds."
+        content.sound    = .defaultCritical
+
+        let request = UNNotificationRequest(
+            identifier: "offline-\(cameraID.uuidString)",
+            content: content,
+            trigger: nil
+        )
+        try? await UNUserNotificationCenter.current().add(request)
+    }
+
+    // MARK: - Storage alert
+
+    func sendStorageAlert(percentUsed: Double) async {
+        guard !inQuietHours() else { return }
+        guard percentUsed > 90 else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = "McBlink: Storage warning"
+        content.body  = String(format: "Clip storage is %.0f%% full. Old clips may be deleted.", percentUsed)
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "storage-warning",
+            content: content,
+            trigger: nil
+        )
+        try? await UNUserNotificationCenter.current().add(request)
+    }
+
+    // MARK: - Lockdown alert
+
+    /// Critical-priority alert sent when triggerLockdown() is called.
+    /// Not suppressed by quiet hours.
+    func sendLockdownAlert() async {
+        let content = UNMutableNotificationContent()
+        content.title             = "McBlink: LOCKDOWN ACTIVATED"
+        content.body              = "All cameras armed. Offsite sync triggered."
+        content.sound             = .defaultCritical
+        content.interruptionLevel = .timeSensitive
+
+        let request = UNNotificationRequest(
+            identifier: "lockdown-\(Date().timeIntervalSince1970)",
+            content: content,
+            trigger: nil
+        )
+        try? await UNUserNotificationCenter.current().add(request)
+    }
+
+    // MARK: - Quiet hours
+
+    private func inQuietHours() -> Bool {
+        let defaults = UserDefaults.standard
+        guard
+            let start = defaults.object(forKey: "quietHoursStart") as? DateComponents,
+            let end   = defaults.object(forKey: "quietHoursEnd")   as? DateComponents,
+            let sh    = start.hour, let sm = start.minute,
+            let eh    = end.hour,   let em = end.minute
+        else { return false }
+
+        let cal     = Calendar.current
+        let now     = Date()
+        let nowComps = cal.dateComponents([.hour, .minute], from: now)
+        guard let nh = nowComps.hour, let nm = nowComps.minute else { return false }
+
+        let nowMins   = nh * 60 + nm
+        let startMins = sh * 60 + sm
+        let endMins   = eh * 60 + em
+
+        if startMins <= endMins {
+            return nowMins >= startMins && nowMins < endMins
+        } else {
+            // Overnight window (e.g. 22:00–06:00)
+            return nowMins >= startMins || nowMins < endMins
+        }
+    }
+
+    // MARK: - MQTT config helper
+
+    private func mqttConfig() -> (host: String, port: UInt16, prefix: String)? {
+        let defaults = UserDefaults.standard
+        guard
+            let host   = defaults.string(forKey: "mqttHost"),
+            let prefix = defaults.string(forKey: "mqttTopicPrefix"),
+            !host.isEmpty
+        else { return nil }
+        let port = UInt16(defaults.integer(forKey: "mqttPort").clamped(to: 1...65535))
+        return (host, port, prefix)
+    }
+
+    // MARK: - MQTT publish (raw TCP, no library)
+
+    /// Sends a minimal MQTT 3.1.1 CONNECT → PUBLISH → DISCONNECT sequence.
+    /// Suitable for fire-and-forget telemetry; does not implement subscriptions,
+    /// QoS > 0, persistent sessions, or TLS (add Network.framework TLS options
+    /// in production).
+    func publishMQTT(host: String, port: UInt16, topic: String, payload: Data) async {
+        // Swift 6: use Once class to safely guard the Void continuation across concurrent callbacks.
+        final class Once: @unchecked Sendable {
+            private let lock = NSLock(); private var fired = false
+            func run(_ f: () -> Void) { lock.lock(); defer { lock.unlock() }; guard !fired else { return }; fired = true; f() }
+        }
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            let once = Once()
+            let endpoint = NWEndpoint.hostPort(
+                host: NWEndpoint.Host(host),
+                port: NWEndpoint.Port(rawValue: port)!
+            )
+            let conn = NWConnection(to: endpoint, using: .tcp)
+
+            conn.stateUpdateHandler = { state in
+                switch state {
+                case .ready:
+                    let connectPacket = MQTTPacketBuilder.connect(clientID: "mcblink-sentinel")
+                    conn.send(content: connectPacket, completion: .contentProcessed { _ in
+                        conn.receive(minimumIncompleteLength: 4, maximumLength: 64) { _, _, _, _ in
+                            let publishPacket = MQTTPacketBuilder.publish(topic: topic, payload: payload)
+                            conn.send(content: publishPacket, completion: .contentProcessed { _ in
+                                let disconnectPacket = MQTTPacketBuilder.disconnect()
+                                conn.send(content: disconnectPacket, completion: .contentProcessed { _ in
+                                    once.run { conn.cancel(); continuation.resume() }
+                                })
+                            })
+                        }
+                    })
+                case .failed, .cancelled:
+                    once.run { continuation.resume() }
+                default:
+                    break
+                }
+            }
+            conn.start(queue: .global(qos: .utility))
+            DispatchQueue.global().asyncAfter(deadline: .now() + 5) {
+                once.run { conn.cancel(); continuation.resume() }
+            }
+        }
+    }
+}
+
+// MARK: - MQTT Packet Builder
+
+private enum MQTTPacketBuilder {
+
+    /// MQTT 3.1.1 CONNECT packet for a clean session with no credentials.
+    static func connect(clientID: String) -> Data {
+        var packet = Data()
+        let cidBytes = Array(clientID.utf8)
+
+        // Variable header: protocol name, level, flags, keepalive
+        let varHeader: [UInt8] = [
+            0x00, 0x04,                         // protocol name length
+            0x4D, 0x51, 0x54, 0x54,             // "MQTT"
+            0x04,                               // protocol level 4 (3.1.1)
+            0x02,                               // connect flags: CleanSession
+            0x00, 0x3C                          // keepalive 60s
+        ]
+
+        // Client ID string
+        let cidLen: [UInt8] = [
+            UInt8((cidBytes.count >> 8) & 0xFF),
+            UInt8(cidBytes.count & 0xFF)
+        ]
+
+        let payload = cidLen + cidBytes
+        let remaining = varHeader + payload
+
+        // Fixed header: type 0x10 (CONNECT) + remaining length
+        packet.append(0x10)
+        packet.append(contentsOf: encodeMQTTLength(remaining.count))
+        packet.append(contentsOf: remaining)
+        return packet
+    }
+
+    /// MQTT 3.1.1 PUBLISH packet, QoS 0 (fire and forget, no packet ID).
+    static func publish(topic: String, payload: Data) -> Data {
+        var packet = Data()
+        let topicBytes = Array(topic.utf8)
+
+        var varHeader = Data()
+        varHeader.append(UInt8((topicBytes.count >> 8) & 0xFF))
+        varHeader.append(UInt8(topicBytes.count & 0xFF))
+        varHeader.append(contentsOf: topicBytes)
+        // No packet ID for QoS 0.
+
+        let remaining = varHeader + payload
+
+        packet.append(0x30)   // PUBLISH, QoS 0, no retain, no dup
+        packet.append(contentsOf: encodeMQTTLength(remaining.count))
+        packet.append(contentsOf: remaining)
+        return packet
+    }
+
+    /// MQTT 3.1.1 DISCONNECT packet (2 bytes, no payload).
+    static func disconnect() -> Data {
+        Data([0xE0, 0x00])
+    }
+
+    /// MQTT variable-length encoding (up to 4 bytes).
+    private static func encodeMQTTLength(_ length: Int) -> [UInt8] {
+        var result: [UInt8] = []
+        var x = length
+        repeat {
+            var byte = UInt8(x % 128)
+            x /= 128
+            if x > 0 { byte |= 0x80 }
+            result.append(byte)
+        } while x > 0
+        return result
+    }
+}
+
+// MARK: - Comparable clamping helper
+
+private extension Comparable {
+    func clamped(to range: ClosedRange<Self>) -> Self {
+        min(max(self, range.lowerBound), range.upperBound)
+    }
+}

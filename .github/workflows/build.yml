@@ -1,0 +1,106 @@
+name: Build and Notarize McBlink
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build (Release)
+        run: |
+          xcodebuild \
+            -scheme McBlink \
+            -configuration Release \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath .build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Import signing certificate
+        # Only runs on push to main, not on PRs, to avoid exposing secrets.
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          SIGNING_CERTIFICATE_P12: ${{ secrets.SIGNING_CERTIFICATE_P12 }}
+          SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}
+        run: |
+          # Create a temporary keychain so we don't pollute the default one.
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 16)"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Decode and import the Developer ID certificate.
+          echo "$SIGNING_CERTIFICATE_P12" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+          security import "$RUNNER_TEMP/certificate.p12" \
+            -k "$KEYCHAIN_PATH" \
+            -P "$SIGNING_CERTIFICATE_PASSWORD" \
+            -A -T /usr/bin/codesign
+          security list-keychain -d user -s "$KEYCHAIN_PATH" login.keychain
+          security set-key-partition-list \
+            -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+      - name: Build and codesign (Release — main only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          xcodebuild \
+            -scheme McBlink \
+            -configuration Release \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath .build/DerivedData \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Developer ID Application" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            OTHER_CODE_SIGN_FLAGS="--options runtime" \
+            build
+
+      - name: Package app for notarization
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          APP_PATH="$(find .build/DerivedData -name 'McBlink.app' -maxdepth 6 | head -1)"
+          ditto -c -k --keepParent "$APP_PATH" .build/McBlink.zip
+
+      - name: Notarize
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          NOTARIZE_PASSWORD: ${{ secrets.NOTARIZE_PASSWORD }}
+        run: |
+          xcrun notarytool submit .build/McBlink.zip \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$NOTARIZE_PASSWORD" \
+            --wait
+
+      - name: Staple notarization ticket
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          APP_PATH="$(find .build/DerivedData -name 'McBlink.app' -maxdepth 6 | head -1)"
+          xcrun stapler staple "$APP_PATH"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: McBlink-${{ github.sha }}
+          path: .build/McBlink.zip
+          if-no-files-found: ignore
+          retention-days: 14

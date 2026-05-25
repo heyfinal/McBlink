@@ -1,0 +1,706 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		02175638A8DF6A08D724E7A5 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = FD3140F0C682FBBE87A0255F /* GRDB */; };
+		06CC1F8C892046F6B27FAC51 /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F6644F6BE866F8DE1B45290 /* CameraManager.swift */; };
+		0BB68B7C6A106E703F2CF0B3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B37654796A9A52E1D916D932 /* ContentView.swift */; };
+		0E144E119FC2EDBFE8ED519A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 572744987FD4004CE701A9A4 /* SettingsView.swift */; };
+		1C55692AD63865C4C1E0C2A0 /* XPCProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D60EF2025E2F1BE6FEFDEA96 /* XPCProtocol.swift */; };
+		2DC623B0C59DC88BF6DC004C /* EncryptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CE269D42706E4A329F1F4D /* EncryptionManager.swift */; };
+		2F3B02ED9F7AED9376E896DC /* CameraAdapterProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5AA972541B5FC643A1930C /* CameraAdapterProtocol.swift */; };
+		3EBECBDE53344F9F343853E7 /* CameraAdapterProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5AA972541B5FC643A1930C /* CameraAdapterProtocol.swift */; };
+		4205B305B08A6B89CC3614BF /* MJPEGAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C603BE532AB75EB9DB0C83C /* MJPEGAdapter.swift */; };
+		4955ED4D8100E7175B7DDC47 /* AIDetectionPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3AD8F98EB03599A8B1648DA /* AIDetectionPipeline.swift */; };
+		4A0B86F5632A8664DB688A10 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 472EF3E71462074D90EBA9B3 /* main.swift */; };
+		4BF59B5511A16C0CF01D6D0D /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = EA3A7FADEB62200E69694580 /* Sparkle */; };
+		4CF27554F533A248C25B3AE2 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 081B2D969AEF26301A0BD8FF /* Models.swift */; };
+		5206179372D12037C5E34CC0 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A7E4F49251790D4A208381C /* main.swift */; };
+		550B4BF4C3EE416D60717492 /* SentinelServiceDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBA5C1DE4DD05DD7723E839B /* SentinelServiceDelegate.swift */; };
+		584C4C4801D4D29A0171646D /* BlinkAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 616CE9F42DD5B2DD977A234A /* BlinkAPIClient.swift */; };
+		6404FA6C0C21CF26FF0C78AB /* LocalAuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3189C599BA113F96DFBA8A9 /* LocalAuthView.swift */; };
+		7211B62BD4A141C28A8356C2 /* XPCClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6BE176F6B0E2BDCE5D25015 /* XPCClient.swift */; };
+		7838B06BE9A3C98D22165C46 /* CameraAdapterProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5AA972541B5FC643A1930C /* CameraAdapterProtocol.swift */; };
+		8246BE44447952D3C495E179 /* McBlinkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62E2802782D91C47F68879E0 /* McBlinkApp.swift */; };
+		833442CAA21DE113664592BB /* DatabaseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0620F5AC1A173369419C7BE0 /* DatabaseManager.swift */; };
+		872CF3551F88F4BEA317DBE7 /* XPCProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D60EF2025E2F1BE6FEFDEA96 /* XPCProtocol.swift */; };
+		9DA8A74C21949A4982C72BCB /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 08062C93C8B0E7AB97ECE012 /* GRDB */; };
+		9F7C1EA7AE3C5C6D05BC97D3 /* RecordingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFE70337A8CB8DF364B008D5 /* RecordingEngine.swift */; };
+		A65D80FF825929D3A5DBC5E4 /* AlertManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAE6FA84676254F9F8F86F20 /* AlertManager.swift */; };
+		B623A1F2EE352D9845B93447 /* HealthCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFEF70FE960EF68A55EEAE5F /* HealthCollector.swift */; };
+		B77B0EC332C49FEA1179B91B /* BlinkAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 167EACE2EA8D08BBF3D3C502 /* BlinkAdapter.swift */; };
+		C56A98936294BFB632F6FB58 /* SentinelCoreService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7FCA68BC231A6CFD1BEA350 /* SentinelCoreService.swift */; };
+		C9575CEE126D13C2A95392DF /* RTSPAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B62C247293D1475D4E68BEF0 /* RTSPAdapter.swift */; };
+		CBEED348EF6A1481CD278819 /* CameraGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BE6162A4AB5E0325677BAD4 /* CameraGridView.swift */; };
+		DEDD5ECD82B2506AE8A0D44C /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9E2CC601E22E4431FAC4AB /* AppState.swift */; };
+		DFF749B07B1968E0AA259297 /* SentinelCore.xpc in CopyFiles */ = {isa = PBXBuildFile; fileRef = ED86C3E964C6D31B0E657D97 /* SentinelCore.xpc */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		E182A0FE654F8F7395BF2D86 /* XPCProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D60EF2025E2F1BE6FEFDEA96 /* XPCProtocol.swift */; };
+		E29E9D4515D059F52978B42E /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 081B2D969AEF26301A0BD8FF /* Models.swift */; };
+		E442D8C100158273B73B10FF /* HealthDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF78DD70132A1285F43F912B /* HealthDashboardView.swift */; };
+		E49737CA77A0AFD4119A2444 /* TimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFF4A5896F8C9E98DB12E359 /* TimelineView.swift */; };
+		E7DCDAA9C89FFE0D569A4B42 /* CameraAdapterFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DF8F1671FBF5A7C07187558 /* CameraAdapterFactory.swift */; };
+		EEE3327726D65B23209A4833 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 081B2D969AEF26301A0BD8FF /* Models.swift */; };
+		FA0229162DCD645CD1C0253C /* CameraDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD344C3DC3F64A276FDDDAAE /* CameraDetailView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		5A30B2079F11095673620B32 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = FEAFBE41970326DD53B357FA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7F189E8C72B8A198EFEDA5DF;
+			remoteInfo = SentinelCore;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		ADE0F017C56D699000F84582 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/XPCServices";
+			dstSubfolderSpec = 16;
+			files = (
+				DFF749B07B1968E0AA259297 /* SentinelCore.xpc in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		0620F5AC1A173369419C7BE0 /* DatabaseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseManager.swift; sourceTree = "<group>"; };
+		081B2D969AEF26301A0BD8FF /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		0A36AE72967475B738DADE89 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		0E4AB3F3C428E2CBE4526B64 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		11CE269D42706E4A329F1F4D /* EncryptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncryptionManager.swift; sourceTree = "<group>"; };
+		167EACE2EA8D08BBF3D3C502 /* BlinkAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlinkAdapter.swift; sourceTree = "<group>"; };
+		1A9E2CC601E22E4431FAC4AB /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		1C603BE532AB75EB9DB0C83C /* MJPEGAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MJPEGAdapter.swift; sourceTree = "<group>"; };
+		3F6644F6BE866F8DE1B45290 /* CameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraManager.swift; sourceTree = "<group>"; };
+		472EF3E71462074D90EBA9B3 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		4A7E4F49251790D4A208381C /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		4BE6162A4AB5E0325677BAD4 /* CameraGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraGridView.swift; sourceTree = "<group>"; };
+		572744987FD4004CE701A9A4 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		616CE9F42DD5B2DD977A234A /* BlinkAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlinkAPIClient.swift; sourceTree = "<group>"; };
+		62E2802782D91C47F68879E0 /* McBlinkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = McBlinkApp.swift; sourceTree = "<group>"; };
+		6DF8F1671FBF5A7C07187558 /* CameraAdapterFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraAdapterFactory.swift; sourceTree = "<group>"; };
+		A4CF2D3B05AB8AFA409D76EB /* SentinelWatchdog */ = {isa = PBXFileReference; includeInIndex = 0; path = SentinelWatchdog; sourceTree = BUILT_PRODUCTS_DIR; };
+		B37654796A9A52E1D916D932 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		B62C247293D1475D4E68BEF0 /* RTSPAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RTSPAdapter.swift; sourceTree = "<group>"; };
+		B6BE176F6B0E2BDCE5D25015 /* XPCClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPCClient.swift; sourceTree = "<group>"; };
+		BAE6FA84676254F9F8F86F20 /* AlertManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertManager.swift; sourceTree = "<group>"; };
+		BBA5C1DE4DD05DD7723E839B /* SentinelServiceDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentinelServiceDelegate.swift; sourceTree = "<group>"; };
+		BD344C3DC3F64A276FDDDAAE /* CameraDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraDetailView.swift; sourceTree = "<group>"; };
+		BFEF70FE960EF68A55EEAE5F /* HealthCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthCollector.swift; sourceTree = "<group>"; };
+		C3189C599BA113F96DFBA8A9 /* LocalAuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAuthView.swift; sourceTree = "<group>"; };
+		C7FCA68BC231A6CFD1BEA350 /* SentinelCoreService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentinelCoreService.swift; sourceTree = "<group>"; };
+		CF78DD70132A1285F43F912B /* HealthDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthDashboardView.swift; sourceTree = "<group>"; };
+		D60EF2025E2F1BE6FEFDEA96 /* XPCProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPCProtocol.swift; sourceTree = "<group>"; };
+		DD5AA972541B5FC643A1930C /* CameraAdapterProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraAdapterProtocol.swift; sourceTree = "<group>"; };
+		DFE70337A8CB8DF364B008D5 /* RecordingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingEngine.swift; sourceTree = "<group>"; };
+		DFF4A5896F8C9E98DB12E359 /* TimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineView.swift; sourceTree = "<group>"; };
+		ED86C3E964C6D31B0E657D97 /* SentinelCore.xpc */ = {isa = PBXFileReference; explicitFileType = "wrapper.xpc-service"; includeInIndex = 0; path = SentinelCore.xpc; sourceTree = BUILT_PRODUCTS_DIR; };
+		F097086FAE2B2C2C9056E494 /* McBlinkApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = McBlinkApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F3AD8F98EB03599A8B1648DA /* AIDetectionPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIDetectionPipeline.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		408B658C5C4D760167F56E94 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9DA8A74C21949A4982C72BCB /* GRDB in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D0BAD4B0B57000C429B2D781 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				02175638A8DF6A08D724E7A5 /* GRDB in Frameworks */,
+				4BF59B5511A16C0CF01D6D0D /* Sparkle in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		505F4B2C3E381544C9BCAF3E /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F097086FAE2B2C2C9056E494 /* McBlinkApp.app */,
+				ED86C3E964C6D31B0E657D97 /* SentinelCore.xpc */,
+				A4CF2D3B05AB8AFA409D76EB /* SentinelWatchdog */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		5B280600251462F82C597C2B /* SentinelCore */ = {
+			isa = PBXGroup;
+			children = (
+				F3AD8F98EB03599A8B1648DA /* AIDetectionPipeline.swift */,
+				BAE6FA84676254F9F8F86F20 /* AlertManager.swift */,
+				167EACE2EA8D08BBF3D3C502 /* BlinkAdapter.swift */,
+				616CE9F42DD5B2DD977A234A /* BlinkAPIClient.swift */,
+				6DF8F1671FBF5A7C07187558 /* CameraAdapterFactory.swift */,
+				3F6644F6BE866F8DE1B45290 /* CameraManager.swift */,
+				0620F5AC1A173369419C7BE0 /* DatabaseManager.swift */,
+				11CE269D42706E4A329F1F4D /* EncryptionManager.swift */,
+				BFEF70FE960EF68A55EEAE5F /* HealthCollector.swift */,
+				0A36AE72967475B738DADE89 /* Info.plist */,
+				472EF3E71462074D90EBA9B3 /* main.swift */,
+				1C603BE532AB75EB9DB0C83C /* MJPEGAdapter.swift */,
+				DFE70337A8CB8DF364B008D5 /* RecordingEngine.swift */,
+				B62C247293D1475D4E68BEF0 /* RTSPAdapter.swift */,
+				C7FCA68BC231A6CFD1BEA350 /* SentinelCoreService.swift */,
+				BBA5C1DE4DD05DD7723E839B /* SentinelServiceDelegate.swift */,
+			);
+			name = SentinelCore;
+			path = Sources/SentinelCore;
+			sourceTree = "<group>";
+		};
+		6B2683E37353E35EBEFB4D5E /* McBlinkApp */ = {
+			isa = PBXGroup;
+			children = (
+				1A9E2CC601E22E4431FAC4AB /* AppState.swift */,
+				BD344C3DC3F64A276FDDDAAE /* CameraDetailView.swift */,
+				4BE6162A4AB5E0325677BAD4 /* CameraGridView.swift */,
+				B37654796A9A52E1D916D932 /* ContentView.swift */,
+				CF78DD70132A1285F43F912B /* HealthDashboardView.swift */,
+				0E4AB3F3C428E2CBE4526B64 /* Info.plist */,
+				C3189C599BA113F96DFBA8A9 /* LocalAuthView.swift */,
+				62E2802782D91C47F68879E0 /* McBlinkApp.swift */,
+				572744987FD4004CE701A9A4 /* SettingsView.swift */,
+				DFF4A5896F8C9E98DB12E359 /* TimelineView.swift */,
+				B6BE176F6B0E2BDCE5D25015 /* XPCClient.swift */,
+			);
+			name = McBlinkApp;
+			path = Sources/McBlinkApp;
+			sourceTree = "<group>";
+		};
+		A65071D56BE80F002F8ED130 /* SentinelWatchdog */ = {
+			isa = PBXGroup;
+			children = (
+				4A7E4F49251790D4A208381C /* main.swift */,
+			);
+			name = SentinelWatchdog;
+			path = Sources/SentinelWatchdog;
+			sourceTree = "<group>";
+		};
+		B68B1D8ACC207B8D97E6A267 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				DD5AA972541B5FC643A1930C /* CameraAdapterProtocol.swift */,
+				081B2D969AEF26301A0BD8FF /* Models.swift */,
+				D60EF2025E2F1BE6FEFDEA96 /* XPCProtocol.swift */,
+			);
+			name = Shared;
+			path = Sources/Shared;
+			sourceTree = "<group>";
+		};
+		C5F6745C161C1DBA3F7C956E = {
+			isa = PBXGroup;
+			children = (
+				6B2683E37353E35EBEFB4D5E /* McBlinkApp */,
+				5B280600251462F82C597C2B /* SentinelCore */,
+				A65071D56BE80F002F8ED130 /* SentinelWatchdog */,
+				B68B1D8ACC207B8D97E6A267 /* Shared */,
+				505F4B2C3E381544C9BCAF3E /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		19F3BED7FD727564C79AA9E8 /* McBlinkApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6E6D337C38D7B1B013DCFB30 /* Build configuration list for PBXNativeTarget "McBlinkApp" */;
+			buildPhases = (
+				259A7AA0E99CB54A609DE14B /* Sources */,
+				ADE0F017C56D699000F84582 /* CopyFiles */,
+				D0BAD4B0B57000C429B2D781 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				2F6445DE4A0196E4F137C573 /* PBXTargetDependency */,
+			);
+			name = McBlinkApp;
+			packageProductDependencies = (
+				FD3140F0C682FBBE87A0255F /* GRDB */,
+				EA3A7FADEB62200E69694580 /* Sparkle */,
+			);
+			productName = McBlinkApp;
+			productReference = F097086FAE2B2C2C9056E494 /* McBlinkApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+		73CC273D371163AD60B773EA /* SentinelWatchdog */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA094B51D247B022BCF3FC8F /* Build configuration list for PBXNativeTarget "SentinelWatchdog" */;
+			buildPhases = (
+				69648B1CE2818679D821C81B /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SentinelWatchdog;
+			packageProductDependencies = (
+			);
+			productName = SentinelWatchdog;
+			productReference = A4CF2D3B05AB8AFA409D76EB /* SentinelWatchdog */;
+			productType = "com.apple.product-type.tool";
+		};
+		7F189E8C72B8A198EFEDA5DF /* SentinelCore */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BFA8B970BB17774D62400D8F /* Build configuration list for PBXNativeTarget "SentinelCore" */;
+			buildPhases = (
+				4EECE2F8E0D51880A3117956 /* Sources */,
+				408B658C5C4D760167F56E94 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SentinelCore;
+			packageProductDependencies = (
+				08062C93C8B0E7AB97ECE012 /* GRDB */,
+			);
+			productName = SentinelCore;
+			productReference = ED86C3E964C6D31B0E657D97 /* SentinelCore.xpc */;
+			productType = "com.apple.product-type.xpc-service";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		FEAFBE41970326DD53B357FA /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					19F3BED7FD727564C79AA9E8 = {
+						ProvisioningStyle = Manual;
+					};
+					73CC273D371163AD60B773EA = {
+						ProvisioningStyle = Manual;
+					};
+					7F189E8C72B8A198EFEDA5DF = {
+						ProvisioningStyle = Manual;
+					};
+				};
+			};
+			buildConfigurationList = BEAEE4BA7115DB1508EE9508 /* Build configuration list for PBXProject "McBlink" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = C5F6745C161C1DBA3F7C956E;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				477AFC051DD7D75F556190BE /* XCRemoteSwiftPackageReference "GRDB.swift" */,
+				77E6DED7DBD91354DA0F883A /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 505F4B2C3E381544C9BCAF3E /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				19F3BED7FD727564C79AA9E8 /* McBlinkApp */,
+				7F189E8C72B8A198EFEDA5DF /* SentinelCore */,
+				73CC273D371163AD60B773EA /* SentinelWatchdog */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		259A7AA0E99CB54A609DE14B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DEDD5ECD82B2506AE8A0D44C /* AppState.swift in Sources */,
+				3EBECBDE53344F9F343853E7 /* CameraAdapterProtocol.swift in Sources */,
+				FA0229162DCD645CD1C0253C /* CameraDetailView.swift in Sources */,
+				CBEED348EF6A1481CD278819 /* CameraGridView.swift in Sources */,
+				0BB68B7C6A106E703F2CF0B3 /* ContentView.swift in Sources */,
+				E442D8C100158273B73B10FF /* HealthDashboardView.swift in Sources */,
+				6404FA6C0C21CF26FF0C78AB /* LocalAuthView.swift in Sources */,
+				8246BE44447952D3C495E179 /* McBlinkApp.swift in Sources */,
+				EEE3327726D65B23209A4833 /* Models.swift in Sources */,
+				0E144E119FC2EDBFE8ED519A /* SettingsView.swift in Sources */,
+				E49737CA77A0AFD4119A2444 /* TimelineView.swift in Sources */,
+				7211B62BD4A141C28A8356C2 /* XPCClient.swift in Sources */,
+				E182A0FE654F8F7395BF2D86 /* XPCProtocol.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4EECE2F8E0D51880A3117956 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4955ED4D8100E7175B7DDC47 /* AIDetectionPipeline.swift in Sources */,
+				A65D80FF825929D3A5DBC5E4 /* AlertManager.swift in Sources */,
+				584C4C4801D4D29A0171646D /* BlinkAPIClient.swift in Sources */,
+				B77B0EC332C49FEA1179B91B /* BlinkAdapter.swift in Sources */,
+				E7DCDAA9C89FFE0D569A4B42 /* CameraAdapterFactory.swift in Sources */,
+				2F3B02ED9F7AED9376E896DC /* CameraAdapterProtocol.swift in Sources */,
+				06CC1F8C892046F6B27FAC51 /* CameraManager.swift in Sources */,
+				833442CAA21DE113664592BB /* DatabaseManager.swift in Sources */,
+				2DC623B0C59DC88BF6DC004C /* EncryptionManager.swift in Sources */,
+				B623A1F2EE352D9845B93447 /* HealthCollector.swift in Sources */,
+				4205B305B08A6B89CC3614BF /* MJPEGAdapter.swift in Sources */,
+				4CF27554F533A248C25B3AE2 /* Models.swift in Sources */,
+				C9575CEE126D13C2A95392DF /* RTSPAdapter.swift in Sources */,
+				9F7C1EA7AE3C5C6D05BC97D3 /* RecordingEngine.swift in Sources */,
+				C56A98936294BFB632F6FB58 /* SentinelCoreService.swift in Sources */,
+				550B4BF4C3EE416D60717492 /* SentinelServiceDelegate.swift in Sources */,
+				1C55692AD63865C4C1E0C2A0 /* XPCProtocol.swift in Sources */,
+				4A0B86F5632A8664DB688A10 /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		69648B1CE2818679D821C81B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7838B06BE9A3C98D22165C46 /* CameraAdapterProtocol.swift in Sources */,
+				E29E9D4515D059F52978B42E /* Models.swift in Sources */,
+				872CF3551F88F4BEA317DBE7 /* XPCProtocol.swift in Sources */,
+				5206179372D12037C5E34CC0 /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		2F6445DE4A0196E4F137C573 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7F189E8C72B8A198EFEDA5DF /* SentinelCore */;
+			targetProxy = 5A30B2079F11095673620B32 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		3BA15E6A96994A8642E20E30 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.heyfinal.SentinelWatchdog;
+				PRODUCT_NAME = SentinelWatchdog;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		8A76738A60A332271E927E32 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Entitlements/SentinelCore.entitlements;
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = Sources/SentinelCore/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.heyfinal.SentinelCore;
+				PRODUCT_NAME = SentinelCore;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		943A40B21D41FE2E329AE698 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Entitlements/McBlinkApp.entitlements;
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = Sources/McBlinkApp/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.heyfinal.McBlinkApp;
+				PRODUCT_NAME = McBlink;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		94A69332926B4B31D100039A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.heyfinal.SentinelWatchdog;
+				PRODUCT_NAME = SentinelWatchdog;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		AEB40A1E05C99884E7BBE8B2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Entitlements/McBlinkApp.entitlements;
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = Sources/McBlinkApp/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.heyfinal.McBlinkApp;
+				PRODUCT_NAME = McBlink;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		B1FEA7268850B9F3A971854D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Manual;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		B367B015722584E538576BF7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Manual;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		C23F796AF8780349CC8FD520 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Entitlements/SentinelCore.entitlements;
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = Sources/SentinelCore/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.heyfinal.SentinelCore;
+				PRODUCT_NAME = SentinelCore;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		6E6D337C38D7B1B013DCFB30 /* Build configuration list for PBXNativeTarget "McBlinkApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				943A40B21D41FE2E329AE698 /* Debug */,
+				AEB40A1E05C99884E7BBE8B2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		AA094B51D247B022BCF3FC8F /* Build configuration list for PBXNativeTarget "SentinelWatchdog" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				94A69332926B4B31D100039A /* Debug */,
+				3BA15E6A96994A8642E20E30 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		BEAEE4BA7115DB1508EE9508 /* Build configuration list for PBXProject "McBlink" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B1FEA7268850B9F3A971854D /* Debug */,
+				B367B015722584E538576BF7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		BFA8B970BB17774D62400D8F /* Build configuration list for PBXNativeTarget "SentinelCore" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C23F796AF8780349CC8FD520 /* Debug */,
+				8A76738A60A332271E927E32 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		477AFC051DD7D75F556190BE /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDB.swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 7.0.0;
+			};
+		};
+		77E6DED7DBD91354DA0F883A /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		08062C93C8B0E7AB97ECE012 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 477AFC051DD7D75F556190BE /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			productName = GRDB;
+		};
+		EA3A7FADEB62200E69694580 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 77E6DED7DBD91354DA0F883A /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+		FD3140F0C682FBBE87A0255F /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 477AFC051DD7D75F556190BE /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			productName = GRDB;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = FEAFBE41970326DD53B357FA /* Project object */;
+}

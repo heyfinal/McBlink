@@ -1,0 +1,13 @@
+.DS_Store
+*.xcuserstate
+xcuserdata/
+.build/
+build/
+DerivedData/
+*.resolved
+*.xcworkspace/xcshareddata/swiftpm/
+.swiftpm/
+*.o
+*.d
+*.hmap
+McBlink.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
