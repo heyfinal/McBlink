@@ -114,6 +114,23 @@ targets:
         SWIFT_VERSION: 6.0
         MACOSX_DEPLOYMENT_TARGET: "14.0"
 
+  McBlinkTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Tests/McBlinkTests
+      # Compile self-contained logic sources directly (SentinelCore is an
+      # xpc-service, so @testable import is not available to a logic bundle).
+      - path: Sources/SentinelCore/BlinkAPIClient.swift
+    settings:
+      base:
+        PRODUCT_NAME: McBlinkTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.heyfinal.mcblink.tests
+        SWIFT_VERSION: 6.0
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        GENERATE_INFOPLIST_FILE: YES
+
 schemes:
   McBlink:
     build:
@@ -126,6 +143,8 @@ schemes:
       executable: McBlinkApp
     test:
       config: Debug
+      targets:
+        - McBlinkTests
     profile:
       config: Release
     analyze:

@@ -12,6 +12,7 @@
 		0BB68B7C6A106E703F2CF0B3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B37654796A9A52E1D916D932 /* ContentView.swift */; };
 		0E144E119FC2EDBFE8ED519A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 572744987FD4004CE701A9A4 /* SettingsView.swift */; };
 		1C55692AD63865C4C1E0C2A0 /* XPCProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D60EF2025E2F1BE6FEFDEA96 /* XPCProtocol.swift */; };
+		257C8E7AC8F437D10A5ADF9F /* MockURLProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = F814B887168D083814EDB08E /* MockURLProtocol.swift */; };
 		2DC623B0C59DC88BF6DC004C /* EncryptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CE269D42706E4A329F1F4D /* EncryptionManager.swift */; };
 		2F3B02ED9F7AED9376E896DC /* CameraAdapterProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5AA972541B5FC643A1930C /* CameraAdapterProtocol.swift */; };
 		3EBECBDE53344F9F343853E7 /* CameraAdapterProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5AA972541B5FC643A1930C /* CameraAdapterProtocol.swift */; };
@@ -26,6 +27,7 @@
 		6404FA6C0C21CF26FF0C78AB /* LocalAuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3189C599BA113F96DFBA8A9 /* LocalAuthView.swift */; };
 		7211B62BD4A141C28A8356C2 /* XPCClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6BE176F6B0E2BDCE5D25015 /* XPCClient.swift */; };
 		7838B06BE9A3C98D22165C46 /* CameraAdapterProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5AA972541B5FC643A1930C /* CameraAdapterProtocol.swift */; };
+		7E9E0C10B273E81FEDB8FA2D /* BlinkAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 616CE9F42DD5B2DD977A234A /* BlinkAPIClient.swift */; };
 		8246BE44447952D3C495E179 /* McBlinkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62E2802782D91C47F68879E0 /* McBlinkApp.swift */; };
 		833442CAA21DE113664592BB /* DatabaseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0620F5AC1A173369419C7BE0 /* DatabaseManager.swift */; };
 		872CF3551F88F4BEA317DBE7 /* XPCProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D60EF2025E2F1BE6FEFDEA96 /* XPCProtocol.swift */; };
@@ -44,6 +46,7 @@
 		E442D8C100158273B73B10FF /* HealthDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF78DD70132A1285F43F912B /* HealthDashboardView.swift */; };
 		E49737CA77A0AFD4119A2444 /* TimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFF4A5896F8C9E98DB12E359 /* TimelineView.swift */; };
 		E7DCDAA9C89FFE0D569A4B42 /* CameraAdapterFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DF8F1671FBF5A7C07187558 /* CameraAdapterFactory.swift */; };
+		ED03D91BFBDA829B9035796C /* BlinkAPIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E510B28EF8C3C322F5CCA642 /* BlinkAPIClientTests.swift */; };
 		EEE3327726D65B23209A4833 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 081B2D969AEF26301A0BD8FF /* Models.swift */; };
 		FA0229162DCD645CD1C0253C /* CameraDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD344C3DC3F64A276FDDDAAE /* CameraDetailView.swift */; };
 /* End PBXBuildFile section */
@@ -88,6 +91,7 @@
 		616CE9F42DD5B2DD977A234A /* BlinkAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlinkAPIClient.swift; sourceTree = "<group>"; };
 		62E2802782D91C47F68879E0 /* McBlinkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = McBlinkApp.swift; sourceTree = "<group>"; };
 		6DF8F1671FBF5A7C07187558 /* CameraAdapterFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraAdapterFactory.swift; sourceTree = "<group>"; };
+		8EDCBD991C422CE7A5980536 /* McBlinkTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = McBlinkTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A4CF2D3B05AB8AFA409D76EB /* SentinelWatchdog */ = {isa = PBXFileReference; includeInIndex = 0; path = SentinelWatchdog; sourceTree = BUILT_PRODUCTS_DIR; };
 		B37654796A9A52E1D916D932 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		B62C247293D1475D4E68BEF0 /* RTSPAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RTSPAdapter.swift; sourceTree = "<group>"; };
@@ -103,9 +107,11 @@
 		DD5AA972541B5FC643A1930C /* CameraAdapterProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraAdapterProtocol.swift; sourceTree = "<group>"; };
 		DFE70337A8CB8DF364B008D5 /* RecordingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingEngine.swift; sourceTree = "<group>"; };
 		DFF4A5896F8C9E98DB12E359 /* TimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineView.swift; sourceTree = "<group>"; };
+		E510B28EF8C3C322F5CCA642 /* BlinkAPIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlinkAPIClientTests.swift; sourceTree = "<group>"; };
 		ED86C3E964C6D31B0E657D97 /* SentinelCore.xpc */ = {isa = PBXFileReference; explicitFileType = "wrapper.xpc-service"; includeInIndex = 0; path = SentinelCore.xpc; sourceTree = BUILT_PRODUCTS_DIR; };
 		F097086FAE2B2C2C9056E494 /* McBlinkApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = McBlinkApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F3AD8F98EB03599A8B1648DA /* AIDetectionPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIDetectionPipeline.swift; sourceTree = "<group>"; };
+		F814B887168D083814EDB08E /* MockURLProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockURLProtocol.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -129,10 +135,21 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		4A5CCED4ED510FAF59C69ACC /* McBlinkTests */ = {
+			isa = PBXGroup;
+			children = (
+				E510B28EF8C3C322F5CCA642 /* BlinkAPIClientTests.swift */,
+				F814B887168D083814EDB08E /* MockURLProtocol.swift */,
+			);
+			name = McBlinkTests;
+			path = Tests/McBlinkTests;
+			sourceTree = "<group>";
+		};
 		505F4B2C3E381544C9BCAF3E /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				F097086FAE2B2C2C9056E494 /* McBlinkApp.app */,
+				8EDCBD991C422CE7A5980536 /* McBlinkTests.xctest */,
 				ED86C3E964C6D31B0E657D97 /* SentinelCore.xpc */,
 				A4CF2D3B05AB8AFA409D76EB /* SentinelWatchdog */,
 			);
@@ -206,6 +223,7 @@
 			isa = PBXGroup;
 			children = (
 				6B2683E37353E35EBEFB4D5E /* McBlinkApp */,
+				4A5CCED4ED510FAF59C69ACC /* McBlinkTests */,
 				5B280600251462F82C597C2B /* SentinelCore */,
 				A65071D56BE80F002F8ED130 /* SentinelWatchdog */,
 				B68B1D8ACC207B8D97E6A267 /* Shared */,
@@ -237,6 +255,23 @@
 			productName = McBlinkApp;
 			productReference = F097086FAE2B2C2C9056E494 /* McBlinkApp.app */;
 			productType = "com.apple.product-type.application";
+		};
+		4E9AE2704A1DF85D7117BF92 /* McBlinkTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2B06A8E365F4FE482F3192C0 /* Build configuration list for PBXNativeTarget "McBlinkTests" */;
+			buildPhases = (
+				8390903608182F0DF5849604 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = McBlinkTests;
+			packageProductDependencies = (
+			);
+			productName = McBlinkTests;
+			productReference = 8EDCBD991C422CE7A5980536 /* McBlinkTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		73CC273D371163AD60B773EA /* SentinelWatchdog */ = {
 			isa = PBXNativeTarget;
@@ -286,6 +321,9 @@
 					19F3BED7FD727564C79AA9E8 = {
 						ProvisioningStyle = Manual;
 					};
+					4E9AE2704A1DF85D7117BF92 = {
+						ProvisioningStyle = Manual;
+					};
 					73CC273D371163AD60B773EA = {
 						ProvisioningStyle = Manual;
 					};
@@ -313,6 +351,7 @@
 			projectRoot = "";
 			targets = (
 				19F3BED7FD727564C79AA9E8 /* McBlinkApp */,
+				4E9AE2704A1DF85D7117BF92 /* McBlinkTests */,
 				7F189E8C72B8A198EFEDA5DF /* SentinelCore */,
 				73CC273D371163AD60B773EA /* SentinelWatchdog */,
 			);
@@ -373,6 +412,16 @@
 				E29E9D4515D059F52978B42E /* Models.swift in Sources */,
 				872CF3551F88F4BEA317DBE7 /* XPCProtocol.swift in Sources */,
 				5206179372D12037C5E34CC0 /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8390903608182F0DF5849604 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7E9E0C10B273E81FEDB8FA2D /* BlinkAPIClient.swift in Sources */,
+				ED03D91BFBDA829B9035796C /* BlinkAPIClientTests.swift in Sources */,
+				257C8E7AC8F437D10A5ADF9F /* MockURLProtocol.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -624,9 +673,56 @@
 			};
 			name = Debug;
 		};
+		D5A55ADE2CDB981988DE7C94 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.heyfinal.mcblink.tests;
+				PRODUCT_NAME = McBlinkTests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		D9FE998F0CD81053E662EC62 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.heyfinal.mcblink.tests;
+				PRODUCT_NAME = McBlinkTests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		2B06A8E365F4FE482F3192C0 /* Build configuration list for PBXNativeTarget "McBlinkTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D5A55ADE2CDB981988DE7C94 /* Debug */,
+				D9FE998F0CD81053E662EC62 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		6E6D337C38D7B1B013DCFB30 /* Build configuration list for PBXNativeTarget "McBlinkApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

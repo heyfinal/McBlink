@@ -67,6 +67,17 @@
          </BuildableReference>
       </MacroExpansion>
       <Testables>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "4E9AE2704A1DF85D7117BF92"
+               BuildableName = "McBlinkTests.xctest"
+               BlueprintName = "McBlinkTests"
+               ReferencedContainer = "container:McBlink.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
       <CommandLineArguments>
       </CommandLineArguments>

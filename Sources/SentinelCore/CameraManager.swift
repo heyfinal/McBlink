@@ -16,23 +16,70 @@ actor CameraManager {
     var profiles: [UUID: CameraProfile] = [:]
 
     let healthCollector: HealthCollector
+    private let recordingEngine: RecordingEngine
+    private let encryptionManager: EncryptionManager
+    private let db: DatabaseManager
 
     private var healthPollingTask: Task<Void, Never>?
 
     // MARK: Init
 
-    init(healthCollector: HealthCollector) {
+    init(
+        healthCollector: HealthCollector,
+        recordingEngine: RecordingEngine,
+        encryptionManager: EncryptionManager,
+        db: DatabaseManager
+    ) {
         self.healthCollector = healthCollector
+        self.recordingEngine = recordingEngine
+        self.encryptionManager = encryptionManager
+        self.db = db
     }
 
     // MARK: Registration
 
     /// Creates the adapter for `profile`, calls `connect()`, and stores both.
+    /// For Blink cameras, routes downloaded clips into the RecordingEngine and
+    /// starts adaptive motion-event polling.
     func register(profile: CameraProfile) async throws {
         let adapter = CameraAdapterFactory.make(for: profile)
         try await adapter.connect()
         adapters[profile.id] = adapter
         profiles[profile.id] = profile
+
+        if let blink = adapter as? BlinkAdapter {
+            let engine = recordingEngine
+            let enc = encryptionManager
+            let database = db
+            let camID = profile.id
+
+            // Clips are stored under the owning site profile's storage path,
+            // falling back to the per-camera app-support clips directory.
+            let basePath: String
+            if let site = try? await db.fetchSiteProfile(id: profile.siteProfileID) {
+                basePath = site.storageBasePath
+            } else {
+                basePath = Self.defaultClipsBasePath(for: profile.id)
+            }
+            try? FileManager.default.createDirectory(
+                atPath: basePath, withIntermediateDirectories: true
+            )
+            await blink.setClipHandler { data, sourceURL in
+                do {
+                    try await engine.onClipDownloaded(
+                        cameraID: camID,
+                        clipData: data,
+                        sourceURL: sourceURL,
+                        basePath: basePath,
+                        encryptionManager: enc,
+                        db: database
+                    )
+                } catch {
+                    print("[CameraManager] clip ingest failed for \(camID): \(error)")
+                }
+            }
+            await blink.startMotionPolling()
+        }
     }
 
     /// Tears down the adapter for `cameraID` and removes it from both maps.
@@ -137,9 +184,42 @@ actor CameraManager {
         }
     }
 
+    // MARK: Paths
+
+    /// Default per-camera clips directory under Application Support, created if needed.
+    private static func defaultClipsBasePath(for cameraID: UUID) -> String {
+        let dir = FileManager.default
+            .urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            .appendingPathComponent("McBlink/clips/\(cameraID.uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir.path
+    }
+
     // MARK: Deallocation
 
     deinit {
         healthPollingTask?.cancel()
+    }
+}
+
+// MARK: - CameraManaging conformance
+// Adapts the actor's method names to the protocol the XPC service depends on.
+
+extension CameraManager: CameraManaging {
+    func registerCamera(_ profile: CameraProfile) async throws {
+        try await register(profile: profile)
+    }
+    func unregisterCamera(_ id: UUID) async throws {
+        await unregister(cameraID: id)
+    }
+    func arm(_ id: UUID) async throws {
+        try await armCamera(id)
+    }
+    func disarm(_ id: UUID) async throws {
+        try await disarmCamera(id)
+    }
+    // `armAll()` (non-throwing) already satisfies the throwing requirement.
+    func reloadSiteProfile(_ id: UUID) async throws {
+        // Live multi-site switching is Phase 5; no-op preserves single-site behavior.
     }
 }

@@ -124,6 +124,12 @@ actor BlinkAdapter: CameraAdapter {
 
     // MARK: - Motion Polling
 
+    /// Sets the closure invoked when a clip download completes. Used by CameraManager
+    /// to route clips into the RecordingEngine.
+    func setClipHandler(_ handler: @escaping @Sendable (Data, URL) async -> Void) {
+        onClipAvailable = handler
+    }
+
     /// Starts a background Task that polls for new Blink events every 8 seconds.
     /// On receiving a new event it downloads the clip and calls `onClipAvailable`.
     /// Backs off to 30 s on HTTP 429 (rate-limit).

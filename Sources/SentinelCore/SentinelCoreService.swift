@@ -34,18 +34,25 @@ final class SentinelCoreService: NSObject, McBlinkXPCProtocol, @unchecked Sendab
     private let encryption: EncryptionManager
     private let alerts: AlertManager
     private let health: HealthCollector
-    private let cameras: AnyCameraManager
+    private let cameras: CameraManager
     private let offsite: AnyOffsiteSync
 
     private override init() {
         let dbManager = DatabaseManager()
         let enc       = EncryptionManager()
         let alertMgr  = AlertManager()
+        let healthMgr = HealthCollector(db: dbManager)
+        let recording = RecordingEngine()
         db         = dbManager
         encryption = enc
         alerts     = alertMgr
-        health     = HealthCollector(db: dbManager)
-        cameras    = AnyCameraManager()
+        health     = healthMgr
+        cameras    = CameraManager(
+            healthCollector: healthMgr,
+            recordingEngine: recording,
+            encryptionManager: enc,
+            db: dbManager
+        )
         offsite    = AnyOffsiteSync()
         super.init()
         Task {
@@ -233,16 +240,7 @@ final class SentinelCoreService: NSObject, McBlinkXPCProtocol, @unchecked Sendab
     }
 }
 
-// MARK: - No-op stubs (replaced by real actors in Phase 1+)
-
-final class AnyCameraManager: CameraManaging, @unchecked Sendable {
-    func registerCamera(_ profile: CameraProfile) async throws {}
-    func unregisterCamera(_ id: UUID) async throws {}
-    func arm(_ id: UUID) async throws {}
-    func disarm(_ id: UUID) async throws {}
-    func armAll() async throws {}
-    func reloadSiteProfile(_ id: UUID) async throws {}
-}
+// MARK: - Offsite sync stub (real implementation lands in Phase 6)
 
 final class AnyOffsiteSync: OffsiteSyncProtocol, @unchecked Sendable {
     func triggerImmediateSync() async {}
