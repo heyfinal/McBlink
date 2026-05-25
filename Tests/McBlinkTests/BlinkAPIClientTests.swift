@@ -132,4 +132,31 @@ final class BlinkAPIClientTests: XCTestCase {
             XCTFail("Unexpected error: \(error)")
         }
     }
+
+    func testInjectedCapturedSessionAppliesTokenToRequests() async throws {
+        final class Box: @unchecked Sendable {
+            var token: String?
+            var path: String?
+        }
+        let box = Box()
+        let token = "captured-token-xyz"
+        let accountID = "778899"
+
+        MockURLProtocol.setHandler { request in
+            box.token = request.value(forHTTPHeaderField: "TOKEN_AUTH")
+            box.path = request.url?.path
+            return (httpResponse(request.url!, 200), Data("{\"networks\":[]}".utf8))
+        }
+
+        let client = BlinkAPIClient(session: .mocked())
+        await client.injectCapturedSession(token: token, accountID: accountID)
+
+        _ = try await client.getHomescreen()
+
+        XCTAssertEqual(box.token, token, "captured token must be sent as TOKEN_AUTH")
+        XCTAssertEqual(box.path, "/api/v3/accounts/\(accountID)/homescreen")
+
+        let storedAccount = await client.accountID
+        XCTAssertEqual(storedAccount, accountID)
+    }
 }

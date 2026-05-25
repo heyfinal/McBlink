@@ -145,6 +145,19 @@ actor BlinkAPIClient {
         authToken = readTokenFromKeychain(account: email)
     }
 
+    /// Injects credentials captured out-of-band (e.g. via mitmproxy from the official
+    /// Blink app) so the client can operate without performing its own login.
+    /// Persists the token to Keychain keyed by `accountID` for reuse across launches.
+    /// Note: Blink accounts live on regional tier hosts; if subsequent calls 404,
+    /// the captured base host differs from the default and must be supplied (TODO once
+    /// the real captured traffic confirms the tier format).
+    func injectCapturedSession(token: String, accountID: String, clientID: String? = nil) {
+        self.authToken = token
+        self.accountID = accountID
+        self.clientID = clientID
+        storeTokenInKeychain(token: token, account: accountID)
+    }
+
     // MARK: - Network Requests
 
     func getHomescreen() async throws -> Data {
