@@ -16,18 +16,23 @@
  *   4. Set WIFI_SSID / WIFI_PASS below, flash, open Serial Monitor at 115200
  *
  * Motion detection
- *   Runs a JPEG byte-diff comparison every 1 second. Works well for garage
- *   driveway lighting changes and person/vehicle entry. The /status endpoint
- *   exposes the current motion flag; McBlink's ESP32CAMAdapter polls it.
+ *   Every ~1 s the latest JPEG is decoded to RGB888 (in PSRAM) and downsampled
+ *   to a fixed grayscale luma grid, diffed against the previous grid. Operating
+ *   on actual luma (not raw JPEG bytes) makes detection spatially meaningful,
+ *   and the fixed-size grid avoids per-frame heap allocation. The /status
+ *   endpoint exposes the motion flag; ESP32CAMAdapter polls it.
+ *   NOTE: the synchronous WebServer pauses motion checks while a client is
+ *   actively pulling /stream — fine for McBlink's snapshot+poll usage.
  */
 
 #include "esp_camera.h"
+#include "img_converters.h"   // fmt2rgb888 (JPEG -> RGB888)
+#include "esp_heap_caps.h"    // heap_caps_malloc (PSRAM)
 #include <WiFi.h>
 #include <WebServer.h>
 
-// ── CONFIGURE THESE ──────────────────────────────────────────────────────────
-#define WIFI_SSID    "YOUR_SSID"
-#define WIFI_PASS    "YOUR_WIFI_PASS"
+// ── CONFIGURE: copy wifi_secrets.h.example -> wifi_secrets.h and fill it in ───
+#include "wifi_secrets.h"     // defines WIFI_SSID and WIFI_PASS (gitignored)
 #define DEVICE_NAME  "garage-cam"
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -50,19 +55,25 @@
 #define PCLK_GPIO_NUM   22
 #define FLASH_GPIO       4
 
-// Motion detection tuning
-#define MOTION_SAMPLE_STEP  32    // compare every Nth byte (lower = more CPU)
-#define MOTION_THRESHOLD    22    // per-byte diff to count as changed
-#define MOTION_MIN_HITS    180    // minimum hits to declare motion
+// Motion detection tuning (grayscale-grid luma diff)
+#define MOTION_GRID_W      32     // luma grid columns
+#define MOTION_GRID_H      24     // luma grid rows
+#define MOTION_GRID_N      (MOTION_GRID_W * MOTION_GRID_H)
+#define MOTION_CELL_DELTA  18     // per-cell luma change to count a moved cell
+#define MOTION_CELLS       40     // moved cells required to declare motion
 #define MOTION_COOLDOWN_MS 3000   // rearm delay after event
 
 WebServer server(80);
 
-static uint8_t* prevBuf    = nullptr;
-static size_t   prevLen    = 0;
-static bool     motionFlag = false;
+static bool     motionFlag   = false;
 static uint32_t lastMotionMs = 0;
-static bool     flashOn    = false;
+static bool     flashOn      = false;
+
+// Motion grid state — fixed-size buffers, no per-frame allocation.
+static uint8_t  prevGrid[MOTION_GRID_N];
+static bool     haveGrid = false;
+static uint8_t* rgbBuf   = nullptr;   // RGB888 decode buffer (PSRAM), reused
+static int      rgbW = 0, rgbH = 0;
 
 // ─── Camera init ─────────────────────────────────────────────────────────────
 
@@ -100,31 +111,48 @@ static void setFlash(bool on) {
 
 // ─── Motion detection ────────────────────────────────────────────────────────
 
-static void checkMotion(const uint8_t* buf, size_t len) {
-    if (prevLen == 0) {
-        prevBuf = (uint8_t*)malloc(len);
-        if (prevBuf) { memcpy(prevBuf, buf, len); prevLen = len; }
-        return;
+// Sample a fixed grayscale grid from an RGB888 frame (center pixel per cell).
+static void computeGrid(const uint8_t* rgb, int w, int h, uint8_t* grid) {
+    for (int gy = 0; gy < MOTION_GRID_H; gy++) {
+        int py = (gy * h) / MOTION_GRID_H + (h / MOTION_GRID_H / 2);
+        if (py >= h) py = h - 1;
+        for (int gx = 0; gx < MOTION_GRID_W; gx++) {
+            int px = (gx * w) / MOTION_GRID_W + (w / MOTION_GRID_W / 2);
+            if (px >= w) px = w - 1;
+            const uint8_t* p = rgb + ((size_t)py * w + px) * 3;
+            grid[gy * MOTION_GRID_W + gx] = (uint8_t)((p[0] + p[1] + p[2]) / 3);
+        }
     }
-    size_t cmpLen = min(len, prevLen);
-    int hits = 0;
-    for (size_t i = 0; i < cmpLen; i += MOTION_SAMPLE_STEP) {
-        if (abs((int)buf[i] - (int)prevBuf[i]) > MOTION_THRESHOLD) hits++;
+}
+
+static void checkMotion(camera_fb_t* fb) {
+    int w = fb->width, h = fb->height;
+    // (Re)allocate the RGB888 buffer only when frame dimensions change.
+    if (!rgbBuf || rgbW != w || rgbH != h) {
+        if (rgbBuf) { free(rgbBuf); rgbBuf = nullptr; }
+        rgbBuf = (uint8_t*)heap_caps_malloc((size_t)w * h * 3, MALLOC_CAP_SPIRAM);
+        rgbW = w; rgbH = h; haveGrid = false;
+        if (!rgbBuf) return;   // no PSRAM — skip motion this frame
+    }
+    if (!fmt2rgb888(fb->buf, fb->len, PIXFORMAT_JPEG, rgbBuf)) return;
+
+    uint8_t grid[MOTION_GRID_N];
+    computeGrid(rgbBuf, w, h, grid);
+
+    if (!haveGrid) { memcpy(prevGrid, grid, MOTION_GRID_N); haveGrid = true; return; }
+
+    int changed = 0;
+    for (int i = 0; i < MOTION_GRID_N; i++) {
+        if (abs((int)grid[i] - (int)prevGrid[i]) > MOTION_CELL_DELTA) changed++;
     }
     uint32_t now = millis();
-    if (hits > MOTION_MIN_HITS && now - lastMotionMs > MOTION_COOLDOWN_MS) {
-        motionFlag  = true;
+    if (changed > MOTION_CELLS && now - lastMotionMs > MOTION_COOLDOWN_MS) {
+        motionFlag   = true;
         lastMotionMs = now;
     } else if (now - lastMotionMs > MOTION_COOLDOWN_MS * 3) {
         motionFlag = false;
     }
-    if (prevLen != len) {
-        free(prevBuf);
-        prevBuf = (uint8_t*)malloc(len);
-        if (!prevBuf) { prevLen = 0; return; }
-    }
-    memcpy(prevBuf, buf, len);
-    prevLen = len;
+    memcpy(prevGrid, grid, MOTION_GRID_N);
 }
 
 // ─── HTTP handlers ───────────────────────────────────────────────────────────
@@ -218,8 +246,16 @@ void setup() {
     WiFi.mode(WIFI_STA);
     WiFi.setHostname(DEVICE_NAME);
     WiFi.begin(WIFI_SSID, WIFI_PASS);
-    Serial.print("[wifi] connecting");
-    while (WiFi.status() != WL_CONNECTED) { delay(300); Serial.print('.'); }
+    Serial.print("[wifi] connecting (hidden SSID)");
+    uint32_t wifiStart = millis();
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500); Serial.print('.');
+        if (millis() - wifiStart > 30000) {
+            // Status codes: 0=IDLE 1=NO_SSID 3=CONNECTED 4=WRONG_PASS 6=DISCONNECTED
+            Serial.printf("\n[wifi] timeout — status=%d — restarting\n", WiFi.status());
+            ESP.restart();
+        }
+    }
     Serial.println();
     Serial.printf("[wifi] IP: %s  RSSI: %d dBm\n",
         WiFi.localIP().toString().c_str(), WiFi.RSSI());
@@ -243,7 +279,7 @@ void loop() {
         lastCheck = millis();
         camera_fb_t* fb = esp_camera_fb_get();
         if (fb) {
-            checkMotion(fb->buf, fb->len);
+            checkMotion(fb);
             esp_camera_fb_return(fb);
         }
     }

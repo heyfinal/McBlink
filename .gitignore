@@ -11,3 +11,6 @@ DerivedData/
 *.d
 *.hmap
 McBlink.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+
+# Firmware Wi-Fi credentials — never commit real creds
+firmware/**/wifi_secrets.h
