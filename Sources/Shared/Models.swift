@@ -13,6 +13,7 @@ enum CameraSource: String, Codable, Sendable, CaseIterable {
     case onvif
     case wyze
     case eufy
+    case esp32cam
 }
 
 // MARK: - Camera Capabilities

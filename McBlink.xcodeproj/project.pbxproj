@@ -17,6 +17,7 @@
 		2F3B02ED9F7AED9376E896DC /* CameraAdapterProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5AA972541B5FC643A1930C /* CameraAdapterProtocol.swift */; };
 		3EBECBDE53344F9F343853E7 /* CameraAdapterProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5AA972541B5FC643A1930C /* CameraAdapterProtocol.swift */; };
 		4205B305B08A6B89CC3614BF /* MJPEGAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C603BE532AB75EB9DB0C83C /* MJPEGAdapter.swift */; };
+		DE62D8209BF64F1396B55A37 /* ESP32CAMAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F068B21B464F4C7D9CE67B37 /* ESP32CAMAdapter.swift */; };
 		48DDBF167F1941C7603C4905 /* BlinkBridgeAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A3AC408C1B8DD27217A967 /* BlinkBridgeAdapter.swift */; };
 		4955ED4D8100E7175B7DDC47 /* AIDetectionPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3AD8F98EB03599A8B1648DA /* AIDetectionPipeline.swift */; };
 		4A0B86F5632A8664DB688A10 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 472EF3E71462074D90EBA9B3 /* main.swift */; };
@@ -40,6 +41,7 @@
 		C56A98936294BFB632F6FB58 /* SentinelCoreService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7FCA68BC231A6CFD1BEA350 /* SentinelCoreService.swift */; };
 		C9575CEE126D13C2A95392DF /* RTSPAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B62C247293D1475D4E68BEF0 /* RTSPAdapter.swift */; };
 		CBEED348EF6A1481CD278819 /* CameraGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BE6162A4AB5E0325677BAD4 /* CameraGridView.swift */; };
+		D8D69763C0732ADBDE9A90BD /* ESP32CAMAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73D1E04B3DE6E929F5E13E07 /* ESP32CAMAdapter.swift */; };
 		DEDD5ECD82B2506AE8A0D44C /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9E2CC601E22E4431FAC4AB /* AppState.swift */; };
 		DFF749B07B1968E0AA259297 /* SentinelCore.xpc in CopyFiles */ = {isa = PBXBuildFile; fileRef = ED86C3E964C6D31B0E657D97 /* SentinelCore.xpc */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		E182A0FE654F8F7395BF2D86 /* XPCProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D60EF2025E2F1BE6FEFDEA96 /* XPCProtocol.swift */; };
@@ -85,6 +87,7 @@
 		167EACE2EA8D08BBF3D3C502 /* BlinkAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlinkAdapter.swift; sourceTree = "<group>"; };
 		1A9E2CC601E22E4431FAC4AB /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		1C603BE532AB75EB9DB0C83C /* MJPEGAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MJPEGAdapter.swift; sourceTree = "<group>"; };
+		F068B21B464F4C7D9CE67B37 /* ESP32CAMAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ESP32CAMAdapter.swift; sourceTree = "<group>"; };
 		3F6644F6BE866F8DE1B45290 /* CameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraManager.swift; sourceTree = "<group>"; };
 		472EF3E71462074D90EBA9B3 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		4A7E4F49251790D4A208381C /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
@@ -93,6 +96,7 @@
 		616CE9F42DD5B2DD977A234A /* BlinkAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlinkAPIClient.swift; sourceTree = "<group>"; };
 		62E2802782D91C47F68879E0 /* McBlinkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = McBlinkApp.swift; sourceTree = "<group>"; };
 		6DF8F1671FBF5A7C07187558 /* CameraAdapterFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraAdapterFactory.swift; sourceTree = "<group>"; };
+		73D1E04B3DE6E929F5E13E07 /* ESP32CAMAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ESP32CAMAdapter.swift; sourceTree = "<group>"; };
 		8EDCBD991C422CE7A5980536 /* McBlinkTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = McBlinkTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A4CF2D3B05AB8AFA409D76EB /* SentinelWatchdog */ = {isa = PBXFileReference; includeInIndex = 0; path = SentinelWatchdog; sourceTree = BUILT_PRODUCTS_DIR; };
 		B37654796A9A52E1D916D932 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -170,10 +174,12 @@
 				3F6644F6BE866F8DE1B45290 /* CameraManager.swift */,
 				0620F5AC1A173369419C7BE0 /* DatabaseManager.swift */,
 				11CE269D42706E4A329F1F4D /* EncryptionManager.swift */,
+				73D1E04B3DE6E929F5E13E07 /* ESP32CAMAdapter.swift */,
 				BFEF70FE960EF68A55EEAE5F /* HealthCollector.swift */,
 				0A36AE72967475B738DADE89 /* Info.plist */,
 				472EF3E71462074D90EBA9B3 /* main.swift */,
 				1C603BE532AB75EB9DB0C83C /* MJPEGAdapter.swift */,
+				F068B21B464F4C7D9CE67B37 /* ESP32CAMAdapter.swift */,
 				DFE70337A8CB8DF364B008D5 /* RecordingEngine.swift */,
 				B62C247293D1475D4E68BEF0 /* RTSPAdapter.swift */,
 				C7FCA68BC231A6CFD1BEA350 /* SentinelCoreService.swift */,
@@ -395,9 +401,11 @@
 				2F3B02ED9F7AED9376E896DC /* CameraAdapterProtocol.swift in Sources */,
 				06CC1F8C892046F6B27FAC51 /* CameraManager.swift in Sources */,
 				833442CAA21DE113664592BB /* DatabaseManager.swift in Sources */,
+				D8D69763C0732ADBDE9A90BD /* ESP32CAMAdapter.swift in Sources */,
 				2DC623B0C59DC88BF6DC004C /* EncryptionManager.swift in Sources */,
 				B623A1F2EE352D9845B93447 /* HealthCollector.swift in Sources */,
 				4205B305B08A6B89CC3614BF /* MJPEGAdapter.swift in Sources */,
+				DE62D8209BF64F1396B55A37 /* ESP32CAMAdapter.swift in Sources */,
 				4CF27554F533A248C25B3AE2 /* Models.swift in Sources */,
 				C9575CEE126D13C2A95392DF /* RTSPAdapter.swift in Sources */,
 				9F7C1EA7AE3C5C6D05BC97D3 /* RecordingEngine.swift in Sources */,

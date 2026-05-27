@@ -19,6 +19,8 @@ enum CameraAdapterFactory {
             return RTSPAdapter(profile: profile)
         case .mjpeg:
             return MJPEGAdapter(profile: profile)
+        case .esp32cam:
+            return ESP32CAMAdapter(profile: profile)
         case .wyze:
             return WyzeAdapter(profile: profile)
         case .eufy:
