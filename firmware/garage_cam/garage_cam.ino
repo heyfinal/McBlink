@@ -26,8 +26,9 @@
  */
 
 #include "esp_camera.h"
-#include "img_converters.h"   // fmt2rgb888 (JPEG -> RGB888)
-#include "esp_heap_caps.h"    // heap_caps_malloc (PSRAM)
+#include "img_converters.h"
+#include "esp_heap_caps.h"
+#include "esp_wifi.h"         // WPA3/SAE config
 #include <WiFi.h>
 #include <WebServer.h>
 
@@ -245,13 +246,36 @@ void setup() {
 
     WiFi.mode(WIFI_STA);
     WiFi.setHostname(DEVICE_NAME);
-    WiFi.begin(WIFI_SSID, WIFI_PASS);
-    Serial.print("[wifi] connecting (hidden SSID)");
+
+    WiFi.onEvent([](WiFiEvent_t, WiFiEventInfo_t info) {
+        Serial.printf("[wifi] disconnect reason=%d\n",
+                      info.wifi_sta_disconnected.reason);
+    }, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
+    WiFi.onEvent([](WiFiEvent_t, WiFiEventInfo_t) {
+        Serial.println("[wifi] STA associated");
+    }, ARDUINO_EVENT_WIFI_STA_CONNECTED);
+    WiFi.onEvent([](WiFiEvent_t, WiFiEventInfo_t info) {
+        Serial.printf("[wifi] got IP %s\n",
+                      IPAddress(info.got_ip.ip_info.ip.addr).toString().c_str());
+    }, ARDUINO_EVENT_WIFI_STA_GOT_IP);
+
+    // WPA3-PSK (SAE) requires PMF and H2E; config must be set before connect.
+    {
+        wifi_config_t cfg = {};
+        memcpy(cfg.sta.ssid,     WIFI_SSID, sizeof(cfg.sta.ssid) - 1);
+        memcpy(cfg.sta.password, WIFI_PASS, sizeof(cfg.sta.password) - 1);
+        cfg.sta.threshold.authmode = WIFI_AUTH_WPA3_PSK;
+        cfg.sta.sae_pwe_h2e        = (wifi_sae_pwe_method_t)1; // WPA3_SAE_PWE_H2E
+        cfg.sta.pmf_cfg.capable    = true;
+        cfg.sta.pmf_cfg.required   = true;
+        esp_wifi_set_config(WIFI_IF_STA, &cfg);
+    }
+    esp_wifi_connect();
+    Serial.print("[wifi] connecting");
     uint32_t wifiStart = millis();
     while (WiFi.status() != WL_CONNECTED) {
         delay(500); Serial.print('.');
-        if (millis() - wifiStart > 30000) {
-            // Status codes: 0=IDLE 1=NO_SSID 3=CONNECTED 4=WRONG_PASS 6=DISCONNECTED
+        if (millis() - wifiStart > 60000) {
             Serial.printf("\n[wifi] timeout — status=%d — restarting\n", WiFi.status());
             ESP.restart();
         }
