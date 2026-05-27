@@ -19,6 +19,13 @@ actor EncryptionManager {
 
     private var cachedKey: SymmetricKey?
 
+    init() {}
+
+    /// Test/hermetic init: injects a key so no Keychain access ever occurs.
+    init(testKey: SymmetricKey) {
+        self.cachedKey = testKey
+    }
+
     // MARK: - Key management
 
     /// Loads the master key from the Keychain. Generates and stores a new

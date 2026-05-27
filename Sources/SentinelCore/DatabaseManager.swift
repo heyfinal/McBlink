@@ -14,26 +14,30 @@ actor DatabaseManager {
 
     // MARK: - Init
 
-    init() {
+    /// `inMemory: true` opens a transient in-memory database (used by tests so
+    /// they never touch the real catalog); the file path uses WAL as before.
+    init(inMemory: Bool = false) {
         do {
-            let appSupport = FileManager.default
-                .urls(for: .applicationSupportDirectory, in: .userDomainMask)
-                .first!
-                .appendingPathComponent("McBlink/db", isDirectory: true)
-
-            try FileManager.default.createDirectory(
-                at: appSupport,
-                withIntermediateDirectories: true,
-                attributes: nil
-            )
-
-            let dbPath = appSupport.appendingPathComponent("catalog.sqlite").path
             var config = Configuration()
             config.prepareDatabase { db in
-                try db.execute(sql: "PRAGMA journal_mode = WAL")
                 try db.execute(sql: "PRAGMA foreign_keys = ON")
             }
-            dbQueue = try DatabaseQueue(path: dbPath, configuration: config)
+            if inMemory {
+                dbQueue = try DatabaseQueue(configuration: config)
+            } else {
+                let appSupport = FileManager.default
+                    .urls(for: .applicationSupportDirectory, in: .userDomainMask)
+                    .first!
+                    .appendingPathComponent("McBlink/db", isDirectory: true)
+                try FileManager.default.createDirectory(
+                    at: appSupport, withIntermediateDirectories: true, attributes: nil)
+                let dbPath = appSupport.appendingPathComponent("catalog.sqlite").path
+                var fileConfig = config
+                fileConfig.prepareDatabase { db in
+                    try db.execute(sql: "PRAGMA journal_mode = WAL")
+                }
+                dbQueue = try DatabaseQueue(path: dbPath, configuration: fileConfig)
+            }
             try Self.runMigrations(on: dbQueue)
         } catch {
             fatalError("DatabaseManager: failed to open database — \(error)")
