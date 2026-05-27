@@ -17,6 +17,7 @@
 		2F3B02ED9F7AED9376E896DC /* CameraAdapterProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5AA972541B5FC643A1930C /* CameraAdapterProtocol.swift */; };
 		3EBECBDE53344F9F343853E7 /* CameraAdapterProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5AA972541B5FC643A1930C /* CameraAdapterProtocol.swift */; };
 		4205B305B08A6B89CC3614BF /* MJPEGAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C603BE532AB75EB9DB0C83C /* MJPEGAdapter.swift */; };
+		48DDBF167F1941C7603C4905 /* BlinkBridgeAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A3AC408C1B8DD27217A967 /* BlinkBridgeAdapter.swift */; };
 		4955ED4D8100E7175B7DDC47 /* AIDetectionPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3AD8F98EB03599A8B1648DA /* AIDetectionPipeline.swift */; };
 		4A0B86F5632A8664DB688A10 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 472EF3E71462074D90EBA9B3 /* main.swift */; };
 		4BF59B5511A16C0CF01D6D0D /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = EA3A7FADEB62200E69694580 /* Sparkle */; };
@@ -79,6 +80,7 @@
 		081B2D969AEF26301A0BD8FF /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		0A36AE72967475B738DADE89 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		0E4AB3F3C428E2CBE4526B64 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		11A3AC408C1B8DD27217A967 /* BlinkBridgeAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlinkBridgeAdapter.swift; sourceTree = "<group>"; };
 		11CE269D42706E4A329F1F4D /* EncryptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncryptionManager.swift; sourceTree = "<group>"; };
 		167EACE2EA8D08BBF3D3C502 /* BlinkAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlinkAdapter.swift; sourceTree = "<group>"; };
 		1A9E2CC601E22E4431FAC4AB /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
@@ -163,6 +165,7 @@
 				BAE6FA84676254F9F8F86F20 /* AlertManager.swift */,
 				167EACE2EA8D08BBF3D3C502 /* BlinkAdapter.swift */,
 				616CE9F42DD5B2DD977A234A /* BlinkAPIClient.swift */,
+				11A3AC408C1B8DD27217A967 /* BlinkBridgeAdapter.swift */,
 				6DF8F1671FBF5A7C07187558 /* CameraAdapterFactory.swift */,
 				3F6644F6BE866F8DE1B45290 /* CameraManager.swift */,
 				0620F5AC1A173369419C7BE0 /* DatabaseManager.swift */,
@@ -387,6 +390,7 @@
 				A65D80FF825929D3A5DBC5E4 /* AlertManager.swift in Sources */,
 				584C4C4801D4D29A0171646D /* BlinkAPIClient.swift in Sources */,
 				B77B0EC332C49FEA1179B91B /* BlinkAdapter.swift in Sources */,
+				48DDBF167F1941C7603C4905 /* BlinkBridgeAdapter.swift in Sources */,
 				E7DCDAA9C89FFE0D569A4B42 /* CameraAdapterFactory.swift in Sources */,
 				2F3B02ED9F7AED9376E896DC /* CameraAdapterProtocol.swift in Sources */,
 				06CC1F8C892046F6B27FAC51 /* CameraManager.swift in Sources */,

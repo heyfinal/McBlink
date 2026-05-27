@@ -12,7 +12,9 @@ enum CameraAdapterFactory {
     static func make(for profile: CameraProfile) -> any CameraAdapter {
         switch profile.source {
         case .blink:
-            return BlinkAdapter(profile: profile)
+            // Path B: Blink is OAuth2 PKCE now; bridge to the maintained blinkpy
+            // helper rather than the obsolete in-Swift BlinkAPIClient/BlinkAdapter.
+            return BlinkBridgeAdapter(profile: profile)
         case .rtsp, .onvif:
             return RTSPAdapter(profile: profile)
         case .mjpeg:
