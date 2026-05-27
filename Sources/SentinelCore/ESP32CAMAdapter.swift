@@ -30,6 +30,7 @@ actor ESP32CAMAdapter: CameraAdapter {
     private let profile: CameraProfile
     private let baseURL: URL
     private var motionPollingTask: Task<Void, Never>?
+    private var onClipAvailable: (@Sendable (Data, URL) async -> Void)?
 
     // MARK: Constants
 
@@ -108,6 +109,11 @@ actor ESP32CAMAdapter: CameraAdapter {
         return image
     }
 
+    /// Routes motion-triggered snapshots into the recording pipeline.
+    func setClipHandler(_ handler: @escaping @Sendable (Data, URL) async -> Void) {
+        onClipAvailable = handler
+    }
+
     /// Armed = start polling /status for the on-device motion flag every 2s.
     func setArmed(_ armed: Bool) async throws {
         if armed {
@@ -175,6 +181,14 @@ actor ESP32CAMAdapter: CameraAdapter {
             object: nil,
             userInfo: ["cameraID": cameraID]
         )
+
+        // Capture a JPEG and route it into the recording pipeline (encrypt + catalog).
+        guard let handler = onClipAvailable else { return }
+        let captureURL = baseURL.appendingPathComponent("capture")
+        if let (jpeg, resp) = try? await URLSession.shared.data(from: captureURL),
+           (resp as? HTTPURLResponse)?.statusCode == 200, !jpeg.isEmpty {
+            await handler(jpeg, captureURL)
+        }
     }
 }
 

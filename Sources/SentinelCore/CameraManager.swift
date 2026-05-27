@@ -47,38 +47,40 @@ actor CameraManager {
         adapters[profile.id] = adapter
         profiles[profile.id] = profile
 
+        // Route motion-triggered media into the recording pipeline for adapters
+        // that support it (Blink clip-poll, ESP32-CAM motion snapshots).
         if let blink = adapter as? BlinkAdapter {
-            let engine = recordingEngine
-            let enc = encryptionManager
-            let database = db
-            let camID = profile.id
-
-            // Clips are stored under the owning site profile's storage path,
-            // falling back to the per-camera app-support clips directory.
-            let basePath: String
-            if let site = try? await db.fetchSiteProfile(id: profile.siteProfileID) {
-                basePath = site.storageBasePath
-            } else {
-                basePath = Self.defaultClipsBasePath(for: profile.id)
-            }
-            try? FileManager.default.createDirectory(
-                atPath: basePath, withIntermediateDirectories: true
-            )
-            await blink.setClipHandler { data, sourceURL in
-                do {
-                    try await engine.onClipDownloaded(
-                        cameraID: camID,
-                        clipData: data,
-                        sourceURL: sourceURL,
-                        basePath: basePath,
-                        encryptionManager: enc,
-                        db: database
-                    )
-                } catch {
-                    print("[CameraManager] clip ingest failed for \(camID): \(error)")
-                }
-            }
+            await blink.setClipHandler(await makeClipHandler(for: profile))
             await blink.startMotionPolling()
+        } else if let esp = adapter as? ESP32CAMAdapter {
+            await esp.setClipHandler(await makeClipHandler(for: profile))
+            try? await esp.setArmed(true)
+        }
+    }
+
+    /// Builds a Sendable clip handler that encrypts + catalogs incoming media for
+    /// `profile`, resolving its storage path (owning site profile, else app-support).
+    private func makeClipHandler(for profile: CameraProfile) async -> @Sendable (Data, URL) async -> Void {
+        let engine = recordingEngine
+        let enc = encryptionManager
+        let database = db
+        let camID = profile.id
+        let basePath: String
+        if let site = try? await db.fetchSiteProfile(id: profile.siteProfileID) {
+            basePath = site.storageBasePath
+        } else {
+            basePath = Self.defaultClipsBasePath(for: profile.id)
+        }
+        try? FileManager.default.createDirectory(atPath: basePath, withIntermediateDirectories: true)
+        return { data, sourceURL in
+            do {
+                try await engine.onClipDownloaded(
+                    cameraID: camID, clipData: data, sourceURL: sourceURL,
+                    basePath: basePath, encryptionManager: enc, db: database
+                )
+            } catch {
+                print("[CameraManager] clip ingest failed for \(camID): \(error)")
+            }
         }
     }
 
