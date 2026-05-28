@@ -48,13 +48,16 @@ actor CameraManager {
         profiles[profile.id] = profile
 
         // Route motion-triggered media into the recording pipeline for adapters
-        // that support it (Blink clip-poll, ESP32-CAM motion snapshots).
-        if let blink = adapter as? BlinkAdapter {
-            await blink.setClipHandler(await makeClipHandler(for: profile))
-            await blink.startMotionPolling()
-        } else if let esp = adapter as? ESP32CAMAdapter {
+        // that support it (ESP32-CAM motion snapshots). BlinkBridgeAdapter is
+        // snapshot-only (no clip download without a Sync Module + USB storage),
+        // so it does not receive a clip handler here.
+        if let esp = adapter as? ESP32CAMAdapter {
             await esp.setClipHandler(await makeClipHandler(for: profile))
-            try? await esp.setArmed(true)
+            // Honour the persisted armed state — don't silently re-arm a camera
+            // the user explicitly disarmed before the service last stopped.
+            if profile.isArmed {
+                try? await esp.setArmed(true)
+            }
         }
     }
 

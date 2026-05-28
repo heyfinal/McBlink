@@ -77,6 +77,11 @@ final class SentinelCoreService: NSObject, McBlinkXPCProtocol, @unchecked Sendab
                     }
                 }
             }
+            // Start health polling after adapters are up. Polls every 30 s and
+            // writes HealthReport entries that getHealthReport/getAllHealthReports
+            // can then serve. Safe to start before all registrations complete —
+            // the poll loop simply skips cameras not yet in the adapter map.
+            await cameras.startHealthPolling()
         }
 
         // Observe ESP32-CAM motion events and deliver a user notification.
