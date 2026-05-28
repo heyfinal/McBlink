@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C3D4E5F6A7B8C9D0E1F2A3B4 /* blink_helper.py in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* blink_helper.py */; };
+		D4E5F6A7B8C9D0E1F2A3B4C5 /* requirements.txt in Resources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6A7B8C9D0E1F2A3 /* requirements.txt */; };
 		02175638A8DF6A08D724E7A5 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = FD3140F0C682FBBE87A0255F /* GRDB */; };
 		06CC1F8C892046F6B27FAC51 /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F6644F6BE866F8DE1B45290 /* CameraManager.swift */; };
 		0BB68B7C6A106E703F2CF0B3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B37654796A9A52E1D916D932 /* ContentView.swift */; };
@@ -90,6 +92,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* blink_helper.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = blink_helper.py; sourceTree = "<group>"; };
+		B2C3D4E5F6A7B8C9D0E1F2A3 /* requirements.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = requirements.txt; sourceTree = "<group>"; };
 		009EE480BEA418496E0449AA /* mcblink-seed */ = {isa = PBXFileReference; includeInIndex = 0; path = "mcblink-seed"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0620F5AC1A173369419C7BE0 /* DatabaseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseManager.swift; sourceTree = "<group>"; };
 		081B2D969AEF26301A0BD8FF /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
@@ -227,6 +231,8 @@
 				DFE70337A8CB8DF364B008D5 /* RecordingEngine.swift */,
 				B62C247293D1475D4E68BEF0 /* RTSPAdapter.swift */,
 				C7FCA68BC231A6CFD1BEA350 /* SentinelCoreService.swift */,
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* blink_helper.py */,
+				B2C3D4E5F6A7B8C9D0E1F2A3 /* requirements.txt */,
 				BBA5C1DE4DD05DD7723E839B /* SentinelServiceDelegate.swift */,
 			);
 			name = SentinelCore;
@@ -369,6 +375,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = BFA8B970BB17774D62400D8F /* Build configuration list for PBXNativeTarget "SentinelCore" */;
 			buildPhases = (
+				E5F6A7B8C9D0E1F2A3B4C5D6 /* Resources */,
 				4EECE2F8E0D51880A3117956 /* Sources */,
 				408B658C5C4D760167F56E94 /* Frameworks */,
 			);
@@ -436,6 +443,19 @@
 			);
 		};
 /* End PBXProject section */
+
+
+/* Begin PBXResourcesBuildPhase section */
+		E5F6A7B8C9D0E1F2A3B4C5D6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C3D4E5F6A7B8C9D0E1F2A3B4 /* blink_helper.py in Resources */,
+				D4E5F6A7B8C9D0E1F2A3B4C5 /* requirements.txt in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		259A7AA0E99CB54A609DE14B /* Sources */ = {

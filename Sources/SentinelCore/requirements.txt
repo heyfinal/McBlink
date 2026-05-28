@@ -1,0 +1,2 @@
+blinkpy>=0.22.2
+aiohttp>=3.9
