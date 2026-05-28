@@ -124,43 +124,57 @@ actor AIDetectionPipeline {
 
     // MARK: - Single Frame Analysis
 
-    /// Runs YOLO inference on `image`, filtering results to active `zones`.
-    /// Returns an empty array when no model is loaded (passthrough mode).
+    /// Detects objects in `image`, filtered to active `zones`.
+    /// Uses the YOLO CoreML model when present (person/vehicle/animal/package/…);
+    /// otherwise falls back to Vision's built-in person + animal detectors, which
+    /// ship with macOS and need no downloaded model.
     func analyzeImage(
         _ image: CGImage,
         zones: [DetectionZone]
     ) async throws -> [RawObservation] {
-        guard let vnModel else { return [] }
-
         let activeZones = zones.filter { $0.isActive }
+        let model = vnModel  // capture actor state before leaving the executor
 
-        // Capture actor-isolated state before leaving the actor executor.
-        let model = vnModel
-
-        // handler.perform is synchronous and CPU-intensive — run on a background queue
-        // so we don't block the actor's executor and stall concurrent analysis tasks.
+        // Vision's perform() is synchronous + CPU-heavy — run off the actor executor.
         return try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
-                let request = VNCoreMLRequest(model: model) { request, error in
-                    if let error {
-                        continuation.resume(throwing: error)
-                        return
-                    }
-                    let results = request.results as? [VNRecognizedObjectObservation] ?? []
-                    let raw: [RawObservation] = results.compactMap { obs in
-                        guard let top = obs.labels.first else { return nil }
-                        let center = CGPoint(x: obs.boundingBox.midX, y: obs.boundingBox.midY)
-                        if !activeZones.isEmpty && !activeZones.contains(where: { self.pointInPolygon(center, polygon: $0.polygon) }) {
-                            return nil
+                func inZone(_ box: CGRect) -> Bool {
+                    if activeZones.isEmpty { return true }
+                    let c = CGPoint(x: box.midX, y: box.midY)
+                    return activeZones.contains { self.pointInPolygon(c, polygon: $0.polygon) }
+                }
+                var raw: [RawObservation] = []
+                do {
+                    let handler = VNImageRequestHandler(cgImage: image, options: [:])
+                    if let model {
+                        let req = VNCoreMLRequest(model: model)
+                        req.imageCropAndScaleOption = .scaleFit
+                        try handler.perform([req])
+                        for obs in (req.results as? [VNRecognizedObjectObservation] ?? []) {
+                            guard let top = obs.labels.first, inZone(obs.boundingBox) else { continue }
+                            raw.append(RawObservation(topLabel: top.identifier,
+                                                      confidence: top.confidence,
+                                                      boundingBox: obs.boundingBox))
                         }
-                        return RawObservation(topLabel: top.identifier, confidence: top.confidence, boundingBox: obs.boundingBox)
+                    } else {
+                        // Model-free fallback: built-in person + animal detection.
+                        let humanReq = VNDetectHumanRectanglesRequest()
+                        let animalReq = VNRecognizeAnimalsRequest()
+                        try handler.perform([humanReq, animalReq])
+                        for obs in (humanReq.results ?? []) {
+                            guard inZone(obs.boundingBox) else { continue }
+                            raw.append(RawObservation(topLabel: "person",
+                                                      confidence: obs.confidence,
+                                                      boundingBox: obs.boundingBox))
+                        }
+                        for obs in (animalReq.results ?? []) {
+                            guard let top = obs.labels.first, inZone(obs.boundingBox) else { continue }
+                            raw.append(RawObservation(topLabel: top.identifier,
+                                                      confidence: top.confidence,
+                                                      boundingBox: obs.boundingBox))
+                        }
                     }
                     continuation.resume(returning: raw)
-                }
-                request.imageCropAndScaleOption = .scaleFit
-                let handler = VNImageRequestHandler(cgImage: image, options: [:])
-                do {
-                    try handler.perform([request])
                 } catch {
                     continuation.resume(throwing: error)
                 }
@@ -193,7 +207,7 @@ actor AIDetectionPipeline {
 
     /// Ray-casting algorithm. `polygon` coordinates are in Vision normalized space [0,1].
     /// Returns `true` if `point` is inside the polygon.
-    func pointInPolygon(_ point: CGPoint, polygon: [CGPoint]) -> Bool {
+    nonisolated func pointInPolygon(_ point: CGPoint, polygon: [CGPoint]) -> Bool {
         guard polygon.count >= 3 else { return false }
         var inside = false
         var j = polygon.count - 1

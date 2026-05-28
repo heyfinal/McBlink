@@ -126,6 +126,7 @@ targets:
       - path: Sources/SentinelCore/RecordingEngine.swift
       - path: Sources/SentinelCore/EncryptionManager.swift
       - path: Sources/SentinelCore/DatabaseManager.swift
+      - path: Sources/SentinelCore/AIDetectionPipeline.swift
       - path: Sources/Shared/Models.swift
     dependencies:
       - package: GRDB
