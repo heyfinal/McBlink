@@ -79,6 +79,7 @@ targets:
     settings:
       base:
         PRODUCT_NAME: SentinelCore
+        PRODUCT_BUNDLE_IDENTIFIER: com.heyfinal.mcblink.sentinelcore
         INFOPLIST_FILE: Sources/SentinelCore/Info.plist
         CODE_SIGN_STYLE: Manual
         SWIFT_VERSION: 6.0

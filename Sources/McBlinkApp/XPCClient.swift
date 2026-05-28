@@ -43,7 +43,10 @@ final class XPCClient {
     // MARK: - Connection management
 
     private func connect() {
-        let conn = NSXPCConnection(machServiceName: serviceName, options: [])
+        // Embedded XPC services (Contents/XPCServices/*.xpc) are reached by their
+        // bundle identifier via serviceName — NOT machServiceName (that's for
+        // launchd-registered mach services).
+        let conn = NSXPCConnection(serviceName: serviceName)
         conn.remoteObjectInterface = McBlinkXPCInterface.make()
 
         conn.invalidationHandler = { [weak self] in
