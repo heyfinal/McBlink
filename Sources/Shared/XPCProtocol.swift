@@ -39,6 +39,16 @@ import Foundation
     /// Decrypts and exports the clip to `toPath`. Returns (success, errorMessage?).
     func exportClip(_ clipID: String, toPath: String, reply: @escaping (Bool, String?) -> Void)
 
+    // MARK: Snapshot
+
+    /// Returns the latest JPEG snapshot for the camera (cached cloud thumbnail —
+    /// no camera wake). Empty Data signals "no snapshot available."
+    func getSnapshot(_ cameraID: String, reply: @escaping (Data) -> Void)
+
+    /// Forces the camera to wake and take a new picture, then downloads it.
+    /// Slower (~10s) and battery-costly — use only for explicit user actions.
+    func getFreshSnapshot(_ cameraID: String, reply: @escaping (Data) -> Void)
+
     // MARK: Health
 
     /// Returns JSON-encoded HealthReport for the given camera.
@@ -90,6 +100,18 @@ enum McBlinkXPCInterface {
         interface.setClasses(
             dataClasses as! Set<AnyHashable>,
             for: #selector(McBlinkXPCProtocol.getClips(_:startTime:endTime:reply:)),
+            argumentIndex: 0,
+            ofReply: true
+        )
+        interface.setClasses(
+            dataClasses as! Set<AnyHashable>,
+            for: #selector(McBlinkXPCProtocol.getSnapshot(_:reply:)),
+            argumentIndex: 0,
+            ofReply: true
+        )
+        interface.setClasses(
+            dataClasses as! Set<AnyHashable>,
+            for: #selector(McBlinkXPCProtocol.getFreshSnapshot(_:reply:)),
             argumentIndex: 0,
             ofReply: true
         )

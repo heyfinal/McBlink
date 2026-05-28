@@ -18,6 +18,12 @@ struct CameraDetailView: View {
     @State private var showTimeline: Bool = false
     @State private var errorMessage: String? = nil
     @State private var isTogglingArm: Bool = false
+    @State private var pollTask: Task<Void, Never>? = nil
+
+    /// Cached-thumbnail poll interval. 2s feels live during motion (Blink updates
+    /// the cloud thumbnail every ~1-2s while a clip is recording) without waking
+    /// the camera or burning battery.
+    private static let livePollInterval: TimeInterval = 2.0
 
     var body: some View {
         NavigationStack {
@@ -49,6 +55,11 @@ struct CameraDetailView: View {
             }
             .task {
                 await loadData()
+                startLivePolling()
+            }
+            .onDisappear {
+                pollTask?.cancel()
+                pollTask = nil
             }
             .sheet(isPresented: $showTimeline) {
                 TimelineView(initialCameraID: camera.id)
@@ -138,9 +149,9 @@ struct CameraDetailView: View {
             .tint(camera.isArmed ? .orange : .blue)
             .disabled(isTogglingArm)
 
-            // Take snapshot
+            // Take snapshot (forces a fresh capture — wakes camera)
             Button {
-                Task { await loadSnapshot() }
+                Task { await loadFreshSnapshot() }
             } label: {
                 Label("Snapshot", systemImage: "camera")
             }
@@ -191,17 +202,41 @@ struct CameraDetailView: View {
     // MARK: - Actions
 
     private func loadData() async {
-        async let snapshotLoad: () = loadSnapshot()
+        async let snapshotLoad: () = loadFreshSnapshot()
         async let eventsLoad: () = loadEvents()
         await snapshotLoad
         await eventsLoad
     }
 
-    private func loadSnapshot() async {
+    /// Cached thumbnail — instant, no camera wake. Used by the auto-poll loop.
+    private func loadCachedSnapshot() async {
+        if let data = await appState.xpcClient.getSnapshot(cameraID: camera.id),
+           let img = NSImage(data: data) {
+            snapshot = img
+        }
+    }
+
+    /// Wakes the camera and pulls a freshly captured image (~10s). Used on view
+    /// open and when the Snapshot button is tapped.
+    private func loadFreshSnapshot() async {
         isLoadingSnapshot = true
         defer { isLoadingSnapshot = false }
-        if let data = await appState.xpcClient.getSnapshot(cameraID: camera.id) {
-            snapshot = NSImage(data: data)
+        if let data = await appState.xpcClient.getFreshSnapshot(cameraID: camera.id),
+           let img = NSImage(data: data) {
+            snapshot = img
+        }
+    }
+
+    private func startLivePolling() {
+        pollTask?.cancel()
+        pollTask = Task { @MainActor in
+            while !Task.isCancelled {
+                try? await Task.sleep(
+                    nanoseconds: UInt64(Self.livePollInterval * 1_000_000_000)
+                )
+                guard !Task.isCancelled else { break }
+                await loadCachedSnapshot()
+            }
         }
     }
 

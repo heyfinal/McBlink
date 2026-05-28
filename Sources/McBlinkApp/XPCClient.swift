@@ -115,8 +115,17 @@ final class XPCClient {
     // MARK: - Camera registry
 
     func getCameras() async throws -> [CameraProfile] {
-        let p = try proxyWithErrorHandler()
+        guard let conn = connection else { throw XPCClientError.notConnected }
         return try await withCheckedThrowingContinuation { continuation in
+            // Per-call error handler resumes the continuation on XPC failure,
+            // otherwise an unreachable service causes loadCameras to hang forever.
+            let proxy = conn.remoteObjectProxyWithErrorHandler { @Sendable error in
+                continuation.resume(throwing: error)
+            }
+            guard let p = proxy as? any McBlinkXPCProtocol else {
+                continuation.resume(throwing: XPCClientError.invalidProxy)
+                return
+            }
             p.getCameras { data in
                 do {
                     let profiles = try JSONDecoder().decode([CameraProfile].self, from: data)
@@ -214,12 +223,35 @@ final class XPCClient {
 
     // MARK: - Snapshot
 
-    /// Returns the latest JPEG snapshot for the camera.
-    /// The XPC protocol does not yet declare getSnapshot; SentinelCore will add
-    /// it when Phase 2 live view is wired. For now this method returns nil, which
-    /// callers treat as "no snapshot available."
+    /// Returns the latest JPEG snapshot (cached cloud thumbnail). Nil if unavailable.
     func getSnapshot(cameraID: UUID) async -> Data? {
-        nil
+        await snapshotCall(cameraID: cameraID, fresh: false)
+    }
+
+    /// Forces a fresh capture from the camera (slow, costs battery).
+    func getFreshSnapshot(cameraID: UUID) async -> Data? {
+        await snapshotCall(cameraID: cameraID, fresh: true)
+    }
+
+    private func snapshotCall(cameraID: UUID, fresh: Bool) async -> Data? {
+        guard let conn = connection else { return nil }
+        return await withCheckedContinuation { (cont: CheckedContinuation<Data?, Never>) in
+            let proxy = conn.remoteObjectProxyWithErrorHandler { @Sendable _ in
+                cont.resume(returning: nil)
+            }
+            guard let p = proxy as? any McBlinkXPCProtocol else {
+                cont.resume(returning: nil)
+                return
+            }
+            let handler: (Data) -> Void = { data in
+                cont.resume(returning: data.isEmpty ? nil : data)
+            }
+            if fresh {
+                p.getFreshSnapshot(cameraID.uuidString, reply: handler)
+            } else {
+                p.getSnapshot(cameraID.uuidString, reply: handler)
+            }
+        }
     }
 
     // MARK: - Health

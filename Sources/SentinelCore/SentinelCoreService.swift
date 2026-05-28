@@ -2,6 +2,8 @@
 // Swift 6 / macOS 14
 
 import Foundation
+import ImageIO
+import UniformTypeIdentifiers
 
 // MARK: - Swift 6 XPC bridge helper
 // ObjC XPC reply closures are @escaping but not @Sendable.
@@ -55,10 +57,28 @@ final class SentinelCoreService: NSObject, McBlinkXPCProtocol, @unchecked Sendab
         )
         offsite    = AnyOffsiteSync()
         super.init()
-        Task {
+        Task { [db, cameras] in
             try? await encryption.generateKeyIfNeeded()
-            await alerts.requestNotificationPermission()
+            // Notification permission is requested by the host app delegate.
+            // UNUserNotificationCenter is not callable from an XPC service —
+            // doing so crashes with an NSAssertion abort.
+
+            // Bring up adapters for every camera already in the DB. The seed
+            // tool writes profiles directly, bypassing addCamera/registerCamera,
+            // so without this pass no polling/snapshot/health work ever starts.
+            // Register in parallel — each Blink adapter.connect() is ~5s of
+            // Python helper startup, so 4 sequential registrations would mean
+            // ~20s before all cameras are reachable for snapshot requests.
+            let profiles = (try? await db.fetchAllCameraProfiles()) ?? []
+            await withTaskGroup(of: Void.self) { group in
+                for profile in profiles {
+                    group.addTask { [cameras] in
+                        try? await cameras.registerCamera(profile)
+                    }
+                }
+            }
         }
+
     }
 
     private let encoder = JSONEncoder()
@@ -163,6 +183,47 @@ final class SentinelCoreService: NSObject, McBlinkXPCProtocol, @unchecked Sendab
             let clips = (try? await db.fetchClips(cameraID: id, startTime: start, endTime: end)) ?? []
             r.v(encode(clips))
         }
+    }
+
+    // MARK: - Snapshot
+
+    func getSnapshot(_ cameraID: String, reply: @escaping (Data) -> Void) {
+        let r = S(v: reply)
+        Task { [cameras] in
+            guard let id = UUID(uuidString: cameraID) else { r.v(Data()); return }
+            do {
+                let cg = try await cameras.latestSnapshot(for: id)
+                r.v(encodeJPEG(cg) ?? Data())
+            } catch {
+                r.v(Data())
+            }
+        }
+    }
+
+    func getFreshSnapshot(_ cameraID: String, reply: @escaping (Data) -> Void) {
+        let r = S(v: reply)
+        Task { [cameras] in
+            guard let id = UUID(uuidString: cameraID) else { r.v(Data()); return }
+            do {
+                let cg = try await cameras.freshSnapshot(for: id)
+                r.v(encodeJPEG(cg) ?? Data())
+            } catch {
+                r.v(Data())
+            }
+        }
+    }
+
+    private func encodeJPEG(_ image: CGImage, quality: CGFloat = 0.8) -> Data? {
+        let data = NSMutableData()
+        guard let dest = CGImageDestinationCreateWithData(
+            data, UTType.jpeg.identifier as CFString, 1, nil
+        ) else { return nil }
+        CGImageDestinationAddImage(
+            dest, image,
+            [kCGImageDestinationLossyCompressionQuality: quality] as CFDictionary
+        )
+        guard CGImageDestinationFinalize(dest) else { return nil }
+        return data as Data
     }
 
     func exportClip(_ clipID: String, toPath: String, reply: @escaping (Bool, String?) -> Void) {

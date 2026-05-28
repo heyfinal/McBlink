@@ -76,6 +76,12 @@ static bool     haveGrid = false;
 static uint8_t* rgbBuf   = nullptr;   // RGB888 decode buffer (PSRAM), reused
 static int      rgbW = 0, rgbH = 0;
 
+// WiFi state — channel found by pre-scan; g_needReconnect set by disconnect handler.
+static uint8_t          g_ap_bssid[6]    = {};
+static uint8_t          g_ap_channel     = 0;
+static bool             g_staAssociated  = false;
+static volatile bool    g_needReconnect  = false;
+
 // ─── Camera init ─────────────────────────────────────────────────────────────
 
 static bool initCamera() {
@@ -229,6 +235,20 @@ static void handleControl() {
     server.send(200, "text/plain", "ok");
 }
 
+// ─── WiFi helpers ────────────────────────────────────────────────────────────
+
+static void applyWifiConfig() {
+    wifi_config_t cfg = {};
+    memcpy(cfg.sta.ssid,     WIFI_SSID, strlen(WIFI_SSID));
+    memcpy(cfg.sta.password, WIFI_PASS,  strlen(WIFI_PASS));
+    cfg.sta.threshold.authmode = WIFI_AUTH_WPA3_PSK;   // WPA3-SAE only; BGW may be WPA3-only mode
+    cfg.sta.sae_pwe_h2e        = WPA3_SAE_PWE_HUNT_AND_PECK;  // avoid H2E for BGW compat
+    cfg.sta.channel            = 11;    // "Yes" is 2.4 GHz ch=11; skip full scan
+    cfg.sta.pmf_cfg.capable    = true;
+    cfg.sta.pmf_cfg.required   = true;   // WPA3 mandates PMF required
+    esp_wifi_set_config(WIFI_IF_STA, &cfg);
+}
+
 // ─── Setup / Loop ─────────────────────────────────────────────────────────────
 
 void setup() {
@@ -246,36 +266,54 @@ void setup() {
 
     WiFi.mode(WIFI_STA);
     WiFi.setHostname(DEVICE_NAME);
+    WiFi.setAutoReconnect(false);   // prevent Arduino from wiping credentials on disconnect
 
     WiFi.onEvent([](WiFiEvent_t, WiFiEventInfo_t info) {
-        Serial.printf("[wifi] disconnect reason=%d\n",
-                      info.wifi_sta_disconnected.reason);
+        Serial.printf("[wifi] disconnect reason=%d\n", info.wifi_sta_disconnected.reason);
+        g_needReconnect = true;
     }, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
     WiFi.onEvent([](WiFiEvent_t, WiFiEventInfo_t) {
         Serial.println("[wifi] STA associated");
+        g_staAssociated = true;
+        g_needReconnect = false;
     }, ARDUINO_EVENT_WIFI_STA_CONNECTED);
     WiFi.onEvent([](WiFiEvent_t, WiFiEventInfo_t info) {
         Serial.printf("[wifi] got IP %s\n",
                       IPAddress(info.got_ip.ip_info.ip.addr).toString().c_str());
     }, ARDUINO_EVENT_WIFI_STA_GOT_IP);
 
-    // WPA3-PSK (SAE) requires PMF and H2E; config must be set before connect.
+    // Broad scan to confirm radio health and log visible APs.
     {
-        wifi_config_t cfg = {};
-        memcpy(cfg.sta.ssid,     WIFI_SSID, sizeof(cfg.sta.ssid) - 1);
-        memcpy(cfg.sta.password, WIFI_PASS, sizeof(cfg.sta.password) - 1);
-        cfg.sta.threshold.authmode = WIFI_AUTH_WPA3_PSK;
-        cfg.sta.sae_pwe_h2e        = (wifi_sae_pwe_method_t)1; // WPA3_SAE_PWE_H2E
-        cfg.sta.pmf_cfg.capable    = true;
-        cfg.sta.pmf_cfg.required   = true;
-        esp_wifi_set_config(WIFI_IF_STA, &cfg);
+        delay(500);   // let radio stabilize after mode change
+        int n = WiFi.scanNetworks(false, true);   // blocking, include hidden
+        Serial.printf("[scan] %d APs visible:\n", n);
+        for (int i = 0; i < n; i++) {
+            String ssid = WiFi.SSID(i);
+            Serial.printf("[scan]   ch=%2d rssi=%3d auth=%d  \"%s\"\n",
+                WiFi.channel(i), WiFi.RSSI(i),
+                (int)WiFi.encryptionType(i),
+                ssid.isEmpty() ? "<hidden>" : ssid.c_str());
+        }
+        WiFi.scanDelete();
     }
+
+    // Apply config then connect.  Must be called before esp_wifi_connect();
+    // calling it after returns "sta is connecting" error.
+    applyWifiConfig();
     esp_wifi_connect();
+
     Serial.print("[wifi] connecting");
     uint32_t wifiStart = millis();
+    uint32_t lastRetry = millis();
     while (WiFi.status() != WL_CONNECTED) {
         delay(500); Serial.print('.');
-        if (millis() - wifiStart > 60000) {
+        if (g_needReconnect && millis() - lastRetry > 3000) {
+            g_needReconnect = false;
+            lastRetry = millis();
+            esp_wifi_connect();
+        }
+        uint32_t limit = g_staAssociated ? 120000UL : 90000UL;
+        if (millis() - wifiStart > limit) {
             Serial.printf("\n[wifi] timeout — status=%d — restarting\n", WiFi.status());
             ESP.restart();
         }

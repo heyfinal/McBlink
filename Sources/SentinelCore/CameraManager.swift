@@ -133,6 +133,16 @@ actor CameraManager {
         return try await adapter.latestSnapshot()
     }
 
+    /// Forces a freshly-captured snapshot when the adapter supports it; falls
+    /// back to the cached snapshot for adapters with no fresh-capture path.
+    func freshSnapshot(for id: UUID) async throws -> CGImage {
+        guard let adapter = adapters[id] else { throw XPCError.cameraNotFound }
+        if let bridge = adapter as? BlinkBridgeAdapter {
+            return try await bridge.latestSnapshot(fresh: true)
+        }
+        return try await adapter.latestSnapshot()
+    }
+
     func liveStreamURL(for id: UUID) async throws -> URL {
         guard let adapter = adapters[id] else { throw XPCError.cameraNotFound }
         return try await adapter.liveStreamURL()

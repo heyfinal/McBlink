@@ -69,8 +69,17 @@ actor BlinkBridgeAdapter: CameraAdapter {
     }
 
     func latestSnapshot() async throws -> CGImage {
+        try await latestSnapshot(fresh: false)
+    }
+
+    /// Pulls a snapshot from Blink. With `fresh: true` the camera is woken to
+    /// capture a new image (~10s, battery-costly); otherwise the cached cloud
+    /// thumbnail is returned (instant, no wake).
+    func latestSnapshot(fresh: Bool) async throws -> CGImage {
         let tmp = NSTemporaryDirectory() + "mcblink-blink-\(cameraID.uuidString).jpg"
-        let data = try await runHelper(["snapshot", blinkCameraName, tmp])
+        var args = ["snapshot", blinkCameraName, tmp]
+        if fresh { args.append("--fresh") }
+        let data = try await runHelper(args)
         if let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            obj["error"] != nil {
             throw XPCError.recordingFailed

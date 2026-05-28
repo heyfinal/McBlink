@@ -39,8 +39,11 @@ final class AppState: ObservableObject {
 
     func loadCameras() async {
         do {
-            cameras = try await xpcClient.getCameras()
+            let result = try await xpcClient.getCameras()
+            NSLog("[McBlink] loadCameras returned %d cameras", result.count)
+            cameras = result
         } catch {
+            NSLog("[McBlink] loadCameras error: %@", String(describing: error))
             lastError = error.localizedDescription
         }
     }
