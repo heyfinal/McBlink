@@ -49,6 +49,32 @@ actor AlertManager {
         }
     }
 
+    // MARK: - ESP32-CAM motion alert
+
+    /// Plain-motion notification for ESP32-CAM cameras (no Vision pipeline, no clip).
+    func sendMotionAlert(cameraID: UUID, cameraName: String) async {
+        guard !inQuietHours() else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title    = "McBlink: Motion detected"
+        content.subtitle = cameraName
+        content.body     = "Motion detected at \(DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium))"
+        content.sound    = .defaultCritical
+
+        let request = UNNotificationRequest(
+            identifier: "motion-\(cameraID.uuidString)-\(Int(Date().timeIntervalSince1970))",
+            content: content,
+            trigger: nil
+        )
+        try? await UNUserNotificationCenter.current().add(request)
+
+        if let (host, port, prefix) = mqttConfig() {
+            let topic   = "\(prefix)/motion/\(cameraID.uuidString)"
+            let payload = (try? JSONEncoder().encode(["camera": cameraName, "ts": ISO8601DateFormatter().string(from: Date())])) ?? Data()
+            await publishMQTT(host: host, port: port, topic: topic, payload: payload)
+        }
+    }
+
     // MARK: - Camera offline alert
 
     func sendCameraOfflineAlert(cameraID: UUID, cameraName: String) async {

@@ -79,6 +79,22 @@ final class SentinelCoreService: NSObject, McBlinkXPCProtocol, @unchecked Sendab
             }
         }
 
+        // Observe ESP32-CAM motion events and deliver a user notification.
+        // ESP32CAMAdapter posts .esp32MotionDetected (with "cameraID") instead of
+        // running the Vision pipeline, so it bypasses sendDetectionAlert entirely.
+        NotificationCenter.default.addObserver(
+            forName: .esp32MotionDetected,
+            object: nil,
+            queue: nil
+        ) { [weak self] note in
+            guard let self,
+                  let id = note.userInfo?["cameraID"] as? UUID else { return }
+            Task { [weak self] in
+                guard let self else { return }
+                let name = (try? await self.db.fetchCameraProfile(id: id))?.name ?? "ESP32-CAM"
+                await self.alerts.sendMotionAlert(cameraID: id, cameraName: name)
+            }
+        }
     }
 
     private let encoder = JSONEncoder()
