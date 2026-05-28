@@ -49,13 +49,15 @@ final class XPCClient {
         let conn = NSXPCConnection(serviceName: serviceName)
         conn.remoteObjectInterface = McBlinkXPCInterface.make()
 
-        conn.invalidationHandler = { [weak self] in
-            Task { @MainActor [weak self] in
+        // XPC invokes these handlers off the MainActor executor. The closures
+        // must be @Sendable (non-isolated); the inner Task hops to MainActor.
+        conn.invalidationHandler = { @Sendable [weak self] in
+            Task { @MainActor in
                 self?.handleInvalidation()
             }
         }
-        conn.interruptionHandler = { [weak self] in
-            Task { @MainActor [weak self] in
+        conn.interruptionHandler = { @Sendable [weak self] in
+            Task { @MainActor in
                 self?.handleInvalidation()
             }
         }
@@ -99,8 +101,8 @@ final class XPCClient {
 
     private func proxyWithErrorHandler() throws -> any McBlinkXPCProtocol {
         guard let conn = connection else { throw XPCClientError.notConnected }
-        let proxy = conn.remoteObjectProxyWithErrorHandler { [weak self] error in
-            Task { @MainActor [weak self] in
+        let proxy = conn.remoteObjectProxyWithErrorHandler { @Sendable [weak self] error in
+            Task { @MainActor in
                 self?.handleInvalidation()
             }
         }
