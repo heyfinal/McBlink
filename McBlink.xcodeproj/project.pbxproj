@@ -15,6 +15,7 @@
 		1C55692AD63865C4C1E0C2A0 /* XPCProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D60EF2025E2F1BE6FEFDEA96 /* XPCProtocol.swift */; };
 		257C8E7AC8F437D10A5ADF9F /* MockURLProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = F814B887168D083814EDB08E /* MockURLProtocol.swift */; };
 		2DC623B0C59DC88BF6DC004C /* EncryptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CE269D42706E4A329F1F4D /* EncryptionManager.swift */; };
+		2E6666B377FEAEA5F72B5BE7 /* CodableModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAC51BF05CF21B3D45F57EED /* CodableModelsTests.swift */; };
 		2EF989C76F6A1E07639AF150 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = A678D56A9D3B6ADB4922E180 /* GRDB */; };
 		2F3B02ED9F7AED9376E896DC /* CameraAdapterProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5AA972541B5FC643A1930C /* CameraAdapterProtocol.swift */; };
 		3EBECBDE53344F9F343853E7 /* CameraAdapterProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5AA972541B5FC643A1930C /* CameraAdapterProtocol.swift */; };
@@ -122,6 +123,7 @@
 		DFE70337A8CB8DF364B008D5 /* RecordingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingEngine.swift; sourceTree = "<group>"; };
 		DFF4A5896F8C9E98DB12E359 /* TimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineView.swift; sourceTree = "<group>"; };
 		E510B28EF8C3C322F5CCA642 /* BlinkAPIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlinkAPIClientTests.swift; sourceTree = "<group>"; };
+		EAC51BF05CF21B3D45F57EED /* CodableModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodableModelsTests.swift; sourceTree = "<group>"; };
 		ED86C3E964C6D31B0E657D97 /* SentinelCore.xpc */ = {isa = PBXFileReference; explicitFileType = "wrapper.xpc-service"; includeInIndex = 0; path = SentinelCore.xpc; sourceTree = BUILT_PRODUCTS_DIR; };
 		F097086FAE2B2C2C9056E494 /* McBlinkApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = McBlinkApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F3AD8F98EB03599A8B1648DA /* AIDetectionPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIDetectionPipeline.swift; sourceTree = "<group>"; };
@@ -162,6 +164,7 @@
 			children = (
 				994616E810FB35F6F5BC438A /* AIDetectionPipelineTests.swift */,
 				E510B28EF8C3C322F5CCA642 /* BlinkAPIClientTests.swift */,
+				EAC51BF05CF21B3D45F57EED /* CodableModelsTests.swift */,
 				F814B887168D083814EDB08E /* MockURLProtocol.swift */,
 				369F8EB0AB5348B5944DB21D /* RecordingEngineTests.swift */,
 			);
@@ -453,6 +456,7 @@
 				EB8A0C05B51C62B37F0DCACC /* AIDetectionPipelineTests.swift in Sources */,
 				7E9E0C10B273E81FEDB8FA2D /* BlinkAPIClient.swift in Sources */,
 				ED03D91BFBDA829B9035796C /* BlinkAPIClientTests.swift in Sources */,
+				2E6666B377FEAEA5F72B5BE7 /* CodableModelsTests.swift in Sources */,
 				3F002B00427FCB974B4E76E5 /* DatabaseManager.swift in Sources */,
 				1536C43C9F3BC0050B33F38C /* EncryptionManager.swift in Sources */,
 				257C8E7AC8F437D10A5ADF9F /* MockURLProtocol.swift in Sources */,
