@@ -139,6 +139,23 @@ targets:
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         GENERATE_INFOPLIST_FILE: YES
 
+  mcblink-seed:
+    type: tool
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Sources/Seed
+      - path: Sources/SentinelCore/DatabaseManager.swift
+      - path: Sources/Shared/Models.swift
+    dependencies:
+      - package: GRDB
+        product: GRDB
+    settings:
+      base:
+        PRODUCT_NAME: mcblink-seed
+        SWIFT_VERSION: 6.0
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+
 schemes:
   McBlink:
     build:
@@ -159,3 +176,11 @@ schemes:
       config: Debug
     archive:
       config: Release
+
+  mcblink-seed:
+    build:
+      targets:
+        mcblink-seed: all
+    run:
+      config: Debug
+      executable: mcblink-seed

@@ -21,6 +21,7 @@ struct LocalAuthView: View {
     @State private var lockoutCountdown: Int = 0
     @State private var errorMessage: String? = nil
     @State private var isAuthenticating: Bool = false
+    @FocusState private var passwordFocused: Bool
 
     private let maxAttempts = 3
     private let lockoutSeconds = 30
@@ -110,7 +111,9 @@ struct LocalAuthView: View {
             SecureField("Password", text: $passwordEntry)
                 .textFieldStyle(.roundedBorder)
                 .frame(maxWidth: 280)
+                .focused($passwordFocused)
                 .onSubmit { Task { await attemptPasswordAuth() } }
+                .onAppear { passwordFocused = true }
 
             Button("Unlock") {
                 Task { await attemptPasswordAuth() }

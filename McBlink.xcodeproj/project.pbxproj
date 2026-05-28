@@ -11,10 +11,13 @@
 		06CC1F8C892046F6B27FAC51 /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F6644F6BE866F8DE1B45290 /* CameraManager.swift */; };
 		0BB68B7C6A106E703F2CF0B3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B37654796A9A52E1D916D932 /* ContentView.swift */; };
 		0E144E119FC2EDBFE8ED519A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 572744987FD4004CE701A9A4 /* SettingsView.swift */; };
+		124E62007B2CEAEE2C3CC716 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1EA9D4DC5F93BE2FAC652B4 /* main.swift */; };
+		1340CE27EE8B229CB5E82475 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 2C771485F09B198E4A0F3530 /* GRDB */; };
 		1536C43C9F3BC0050B33F38C /* EncryptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CE269D42706E4A329F1F4D /* EncryptionManager.swift */; };
 		1C55692AD63865C4C1E0C2A0 /* XPCProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D60EF2025E2F1BE6FEFDEA96 /* XPCProtocol.swift */; };
 		257C8E7AC8F437D10A5ADF9F /* MockURLProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = F814B887168D083814EDB08E /* MockURLProtocol.swift */; };
 		2DC623B0C59DC88BF6DC004C /* EncryptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CE269D42706E4A329F1F4D /* EncryptionManager.swift */; };
+		2E3657D78C30E35C6B9E1BC2 /* DatabaseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0620F5AC1A173369419C7BE0 /* DatabaseManager.swift */; };
 		2E6666B377FEAEA5F72B5BE7 /* CodableModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAC51BF05CF21B3D45F57EED /* CodableModelsTests.swift */; };
 		2EF989C76F6A1E07639AF150 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = A678D56A9D3B6ADB4922E180 /* GRDB */; };
 		2F3B02ED9F7AED9376E896DC /* CameraAdapterProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5AA972541B5FC643A1930C /* CameraAdapterProtocol.swift */; };
@@ -32,6 +35,7 @@
 		584C4C4801D4D29A0171646D /* BlinkAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 616CE9F42DD5B2DD977A234A /* BlinkAPIClient.swift */; };
 		6404FA6C0C21CF26FF0C78AB /* LocalAuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3189C599BA113F96DFBA8A9 /* LocalAuthView.swift */; };
 		66CFCE29F7A43293068913BA /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 081B2D969AEF26301A0BD8FF /* Models.swift */; };
+		6F69A9705B3376B5F8882CA5 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 081B2D969AEF26301A0BD8FF /* Models.swift */; };
 		7211B62BD4A141C28A8356C2 /* XPCClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6BE176F6B0E2BDCE5D25015 /* XPCClient.swift */; };
 		7838B06BE9A3C98D22165C46 /* CameraAdapterProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5AA972541B5FC643A1930C /* CameraAdapterProtocol.swift */; };
 		7E9E0C10B273E81FEDB8FA2D /* BlinkAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 616CE9F42DD5B2DD977A234A /* BlinkAPIClient.swift */; };
@@ -86,6 +90,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		009EE480BEA418496E0449AA /* mcblink-seed */ = {isa = PBXFileReference; includeInIndex = 0; path = "mcblink-seed"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0620F5AC1A173369419C7BE0 /* DatabaseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseManager.swift; sourceTree = "<group>"; };
 		081B2D969AEF26301A0BD8FF /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		0A36AE72967475B738DADE89 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -115,6 +120,7 @@
 		BBA5C1DE4DD05DD7723E839B /* SentinelServiceDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentinelServiceDelegate.swift; sourceTree = "<group>"; };
 		BD344C3DC3F64A276FDDDAAE /* CameraDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraDetailView.swift; sourceTree = "<group>"; };
 		BFEF70FE960EF68A55EEAE5F /* HealthCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthCollector.swift; sourceTree = "<group>"; };
+		C1EA9D4DC5F93BE2FAC652B4 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		C3189C599BA113F96DFBA8A9 /* LocalAuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAuthView.swift; sourceTree = "<group>"; };
 		C7FCA68BC231A6CFD1BEA350 /* SentinelCoreService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentinelCoreService.swift; sourceTree = "<group>"; };
 		CF78DD70132A1285F43F912B /* HealthDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthDashboardView.swift; sourceTree = "<group>"; };
@@ -147,6 +153,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B3E5DF2D8524D6C2072F2617 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1340CE27EE8B229CB5E82475 /* GRDB in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		D0BAD4B0B57000C429B2D781 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -175,12 +189,22 @@
 		505F4B2C3E381544C9BCAF3E /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				009EE480BEA418496E0449AA /* mcblink-seed */,
 				F097086FAE2B2C2C9056E494 /* McBlinkApp.app */,
 				8EDCBD991C422CE7A5980536 /* McBlinkTests.xctest */,
 				ED86C3E964C6D31B0E657D97 /* SentinelCore.xpc */,
 				A4CF2D3B05AB8AFA409D76EB /* SentinelWatchdog */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		5ADDA79D6A9853A730FF7F13 /* Seed */ = {
+			isa = PBXGroup;
+			children = (
+				C1EA9D4DC5F93BE2FAC652B4 /* main.swift */,
+			);
+			name = Seed;
+			path = Sources/Seed;
 			sourceTree = "<group>";
 		};
 		5B280600251462F82C597C2B /* SentinelCore */ = {
@@ -253,6 +277,7 @@
 			children = (
 				6B2683E37353E35EBEFB4D5E /* McBlinkApp */,
 				4A5CCED4ED510FAF59C69ACC /* McBlinkTests */,
+				5ADDA79D6A9853A730FF7F13 /* Seed */,
 				5B280600251462F82C597C2B /* SentinelCore */,
 				A65071D56BE80F002F8ED130 /* SentinelWatchdog */,
 				B68B1D8ACC207B8D97E6A267 /* Shared */,
@@ -303,6 +328,25 @@
 			productName = McBlinkTests;
 			productReference = 8EDCBD991C422CE7A5980536 /* McBlinkTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		634F998CEEDCD678501242B9 /* mcblink-seed */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DD82CE94D42B627A8C4A5661 /* Build configuration list for PBXNativeTarget "mcblink-seed" */;
+			buildPhases = (
+				4C97478E2F6004346FB94651 /* Sources */,
+				B3E5DF2D8524D6C2072F2617 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "mcblink-seed";
+			packageProductDependencies = (
+				2C771485F09B198E4A0F3530 /* GRDB */,
+			);
+			productName = "mcblink-seed";
+			productReference = 009EE480BEA418496E0449AA /* mcblink-seed */;
+			productType = "com.apple.product-type.tool";
 		};
 		73CC273D371163AD60B773EA /* SentinelWatchdog */ = {
 			isa = PBXNativeTarget;
@@ -355,6 +399,9 @@
 					4E9AE2704A1DF85D7117BF92 = {
 						ProvisioningStyle = Manual;
 					};
+					634F998CEEDCD678501242B9 = {
+						ProvisioningStyle = Manual;
+					};
 					73CC273D371163AD60B773EA = {
 						ProvisioningStyle = Manual;
 					};
@@ -385,6 +432,7 @@
 				4E9AE2704A1DF85D7117BF92 /* McBlinkTests */,
 				7F189E8C72B8A198EFEDA5DF /* SentinelCore */,
 				73CC273D371163AD60B773EA /* SentinelWatchdog */,
+				634F998CEEDCD678501242B9 /* mcblink-seed */,
 			);
 		};
 /* End PBXProject section */
@@ -407,6 +455,16 @@
 				E49737CA77A0AFD4119A2444 /* TimelineView.swift in Sources */,
 				7211B62BD4A141C28A8356C2 /* XPCClient.swift in Sources */,
 				E182A0FE654F8F7395BF2D86 /* XPCProtocol.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C97478E2F6004346FB94651 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2E3657D78C30E35C6B9E1BC2 /* DatabaseManager.swift in Sources */,
+				6F69A9705B3376B5F8882CA5 /* Models.swift in Sources */,
+				124E62007B2CEAEE2C3CC716 /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -477,6 +535,38 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		14DAA2207AAA1C40F7237719 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.heyfinal.mcblink-seed";
+				PRODUCT_NAME = "mcblink-seed";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		2D74A10A9FA721808D5A0ADD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.heyfinal.mcblink-seed";
+				PRODUCT_NAME = "mcblink-seed";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
 		3BA15E6A96994A8642E20E30 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -800,6 +890,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
+		DD82CE94D42B627A8C4A5661 /* Build configuration list for PBXNativeTarget "mcblink-seed" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				14DAA2207AAA1C40F7237719 /* Debug */,
+				2D74A10A9FA721808D5A0ADD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -823,6 +922,11 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		08062C93C8B0E7AB97ECE012 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 477AFC051DD7D75F556190BE /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			productName = GRDB;
+		};
+		2C771485F09B198E4A0F3530 /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 477AFC051DD7D75F556190BE /* XCRemoteSwiftPackageReference "GRDB.swift" */;
 			productName = GRDB;

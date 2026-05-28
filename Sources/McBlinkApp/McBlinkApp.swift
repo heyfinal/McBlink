@@ -2,6 +2,7 @@
 // Swift 6 strict concurrency. @main SwiftUI App.
 
 import SwiftUI
+import AppKit
 import UserNotifications
 
 // MARK: - App Delegate
@@ -9,6 +10,11 @@ import UserNotifications
 final class McBlinkAppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate, Sendable {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Become a regular foreground app and take key focus so the launch
+        // auth window can actually receive keyboard input.
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+
         let center = UNUserNotificationCenter.current()
         center.delegate = self
         center.requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
