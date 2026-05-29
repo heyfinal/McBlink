@@ -187,7 +187,7 @@ struct SiteProfile: Codable, Sendable, Identifiable {
         name: String,
         cameras: [UUID] = [],
         storageBasePath: String,
-        retentionDays: Int = 30,
+        retentionDays: Int = 7,
         offsiteEnabled: Bool = false
     ) {
         self.id = id

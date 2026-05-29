@@ -84,6 +84,20 @@ final class SentinelCoreService: NSObject, McBlinkXPCProtocol, @unchecked Sendab
             await cameras.startHealthPolling()
         }
 
+        // Daily retention cleanup: run immediately on startup (catches stale
+        // clips from previous sessions), then repeat every 24 hours.
+        retentionTask = Task { [weak self] in
+            guard let self else { return }
+            while !Task.isCancelled {
+                await self.runRetentionCleanup()
+                do {
+                    try await Task.sleep(for: .seconds(86_400))
+                } catch {
+                    break
+                }
+            }
+        }
+
         // Observe ESP32-CAM motion events and deliver a user notification.
         // ESP32CAMAdapter posts .esp32MotionDetected (with "cameraID") instead of
         // running the Vision pipeline, so it bypasses sendDetectionAlert entirely.
@@ -101,6 +115,8 @@ final class SentinelCoreService: NSObject, McBlinkXPCProtocol, @unchecked Sendab
             }
         }
     }
+
+    private var retentionTask: Task<Void, Never>?
 
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
@@ -318,6 +334,22 @@ final class SentinelCoreService: NSObject, McBlinkXPCProtocol, @unchecked Sendab
                 try await cameras.reloadSiteProfile(id)
                 r.v(true, nil)
             } catch { r.v(false, error.localizedDescription) }
+        }
+    }
+
+    // MARK: - Retention cleanup
+
+    private func runRetentionCleanup() async {
+        // Use the first site profile's retention setting; fall back to 7 days.
+        let days: Int
+        if let profiles = try? await db.fetchAllSiteProfiles(), let first = profiles.first {
+            days = first.retentionDays
+        } else {
+            days = 7
+        }
+        let deleted = (try? await db.deleteClipsOlderThan(days: days)) ?? 0
+        if deleted > 0 {
+            NSLog("[McBlink] retention: purged %d clips older than %d days", deleted, days)
         }
     }
 }

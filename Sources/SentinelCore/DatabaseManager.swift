@@ -50,6 +50,7 @@ actor DatabaseManager {
         var migrator = DatabaseMigrator()
 
         migrator.registerMigration("v1") { db in
+            // (schema identical to original)
             // camera_profiles
             try db.execute(sql: """
                 CREATE TABLE IF NOT EXISTS camera_profiles (
@@ -127,6 +128,13 @@ actor DatabaseManager {
                     dropped_frames  INTEGER NOT NULL DEFAULT 0,
                     storage_used    INTEGER NOT NULL DEFAULT 0
                 )
+            """)
+        }
+
+        migrator.registerMigration("v2") { db in
+            // Lower default retention from 30 → 7 days on existing installs.
+            try db.execute(sql: """
+                UPDATE site_profiles SET retention_days = 7 WHERE retention_days = 30
             """)
         }
 
@@ -546,95 +554,61 @@ actor DatabaseManager {
         }
     }
 
-    // MARK: - Maintenance / LRU eviction
+    // MARK: - Retention cleanup
 
-    /// Deletes encrypted clips older than `days` days, retaining at least
-    /// `retaining` most-recent clips per camera, and ensuring total on-disk
-    /// usage stays under `maxBytes`. Removes DB rows and physical files.
-    func deleteClipsOlderThan(days: Int, retaining: Int, maxBytes: Int64) throws {
+    /// Deletes all clips whose `start_time` is older than `days` days, plus
+    /// their linked detection_events and any orphan events with no clip.
+    /// Physical encrypted files (and thumbnails) are removed before the DB rows
+    /// are deleted so a crash mid-run leaves no unreachable rows.
+    /// Returns the number of clips deleted.
+    @discardableResult
+    func deleteClipsOlderThan(days: Int) throws -> Int {
         let cutoff = Date().addingTimeInterval(-Double(days) * 86_400)
             .timeIntervalSinceReferenceDate
 
-        // Collect candidates: older than cutoff, sorted oldest-first.
-        let candidates: [ClipRecord] = try dbQueue.read { db in
-            let rows = try Row.fetchAll(
+        // 1. Collect paths of expired clips before touching the DB.
+        let expired: [(enc: String, thumb: String?)] = try dbQueue.read { db in
+            try Row.fetchAll(
                 db,
+                sql: "SELECT encrypted_path, thumbnail_path FROM clip_records WHERE start_time < ?",
+                arguments: [cutoff]
+            ).map { row in
+                (row["encrypted_path"] as String, row["thumbnail_path"] as String?)
+            }
+        }
+
+        guard !expired.isEmpty else { return 0 }
+
+        // 2. Delete physical files first — a crash here leaves orphan rows,
+        //    which is recoverable; the opposite would leave orphan files.
+        for (enc, thumb) in expired {
+            try? FileManager.default.removeItem(at: URL(fileURLWithPath: enc))
+            if let t = thumb {
+                try? FileManager.default.removeItem(at: URL(fileURLWithPath: t))
+            }
+        }
+
+        // 3. Remove DB rows atomically: linked events → clips → orphan events.
+        try dbQueue.write { db in
+            try db.execute(
                 sql: """
-                    SELECT id, camera_id, start_time, end_time, encrypted_path,
-                           thumbnail_path, detected_classes, is_synced, size_bytes
-                    FROM clip_records
-                    WHERE start_time < ?
-                    ORDER BY start_time ASC
+                    DELETE FROM detection_events
+                    WHERE clip_id IN (SELECT id FROM clip_records WHERE start_time < ?)
                 """,
                 arguments: [cutoff]
             )
-            return try rows.compactMap { row -> ClipRecord? in
-                guard
-                    let idStr: String  = row["id"],
-                    let camStr: String = row["camera_id"],
-                    let rid            = UUID(uuidString: idStr),
-                    let camID          = UUID(uuidString: camStr)
-                else { return nil }
-
-                let startTS: Double     = row["start_time"]
-                let endTS: Double       = row["end_time"]
-                let encPath: String     = row["encrypted_path"]
-                let thumbPath: String?  = row["thumbnail_path"]
-                let classesJSON: String = row["detected_classes"]
-                let isSyncedInt: Int    = row["is_synced"]
-                let sizeBytes: Int64    = row["size_bytes"]
-                let classes             = try fromJSON([DetectionClass].self, string: classesJSON)
-
-                return ClipRecord(
-                    id: rid, cameraID: camID,
-                    startTime: Date(timeIntervalSinceReferenceDate: startTS),
-                    endTime: Date(timeIntervalSinceReferenceDate: endTS),
-                    encryptedPath: encPath, thumbnailPath: thumbPath,
-                    detectedClasses: classes, isSynced: isSyncedInt != 0,
-                    sizeBytes: sizeBytes
-                )
-            }
+            try db.execute(
+                sql: "DELETE FROM clip_records WHERE start_time < ?",
+                arguments: [cutoff]
+            )
+            // Orphan motion events (ESP32 motion that didn't produce a clip)
+            try db.execute(
+                sql: "DELETE FROM detection_events WHERE clip_id IS NULL AND timestamp < ?",
+                arguments: [cutoff]
+            )
         }
 
-        // Calculate total storage to decide if we need additional LRU eviction.
-        var totalBytes = try dbQueue.read { db -> Int64 in
-            let row = try Row.fetchOne(db, sql: "SELECT SUM(size_bytes) AS total FROM clip_records")
-            return row?["total"] ?? 0
-        }
-
-        // Count per-camera retained clips so we respect the `retaining` minimum.
-        var retainedPerCamera: [UUID: Int] = [:]
-
-        for clip in candidates {
-            // Never delete if we haven't hit the retention minimum for this camera.
-            let retained = retainedPerCamera[clip.cameraID] ?? 0
-            if retained < retaining {
-                retainedPerCamera[clip.cameraID] = retained + 1
-                continue
-            }
-
-            // Skip if already within budget.
-            if totalBytes <= maxBytes {
-                break
-            }
-
-            // Delete physical file.
-            let fileURL = URL(fileURLWithPath: clip.encryptedPath)
-            try? FileManager.default.removeItem(at: fileURL)
-            if let thumb = clip.thumbnailPath {
-                try? FileManager.default.removeItem(at: URL(fileURLWithPath: thumb))
-            }
-
-            // Delete DB row.
-            try dbQueue.write { db in
-                try db.execute(
-                    sql: "DELETE FROM clip_records WHERE id = ?",
-                    arguments: [clip.id.uuidString]
-                )
-            }
-
-            totalBytes -= clip.sizeBytes
-        }
+        return expired.count
     }
 }
 
