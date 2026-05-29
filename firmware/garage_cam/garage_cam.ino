@@ -28,7 +28,7 @@
 #include "esp_camera.h"
 #include "img_converters.h"
 #include "esp_heap_caps.h"
-#include "esp_wifi.h"         // WPA3/SAE config
+#include "esp_wifi.h"         // esp_wifi_set_config / esp_wifi_connect
 #include <WiFi.h>
 #include <WebServer.h>
 
@@ -241,14 +241,17 @@ static void applyWifiConfig() {
     wifi_config_t cfg = {};
     memcpy(cfg.sta.ssid,     WIFI_SSID, strlen(WIFI_SSID));
     memcpy(cfg.sta.password, WIFI_PASS,  strlen(WIFI_PASS));
-    // WPA2/WPA3 mixed: AT&T BGW runs WPA3-Personal Transition mode.
-    // WPA3-only (WIFI_AUTH_WPA3_PSK) triggers reason=211 SAE_CONFIRM_MISMATCH.
-    // Mixed mode lets the ESP32 negotiate WPA2 if the SAE exchange fails.
-    cfg.sta.threshold.authmode = WIFI_AUTH_WPA2_WPA3_PSK;
-    cfg.sta.sae_pwe_h2e        = WPA3_SAE_PWE_HUNT_AND_PECK;  // H&P for BGW compat
-    cfg.sta.channel            = 11;    // "Yes" is 2.4 GHz ch=11; skip full scan
+    // "Yes" is a hidden SSID on AT&T BGW (2.4 + 5 GHz) — WPA2 Personal.
+    // Hidden SSIDs require ALL_CHANNEL_SCAN so the stack sends directed
+    // probe requests (with SSID filled) on every channel.  FAST_SCAN
+    // (the default) skips channels after the first candidate and often
+    // misses hidden APs entirely.
+    cfg.sta.scan_method        = WIFI_ALL_CHANNEL_SCAN;
+    cfg.sta.bssid_set          = false;
+    cfg.sta.channel            = 0;
+    cfg.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
     cfg.sta.pmf_cfg.capable    = true;
-    cfg.sta.pmf_cfg.required   = false;  // capable not required; required blocks WPA2 fallback
+    cfg.sta.pmf_cfg.required   = false;
     esp_wifi_set_config(WIFI_IF_STA, &cfg);
 }
 
@@ -285,16 +288,17 @@ void setup() {
                       IPAddress(info.got_ip.ip_info.ip.addr).toString().c_str());
     }, ARDUINO_EVENT_WIFI_STA_GOT_IP);
 
-    // Broad scan to confirm radio health and log visible APs.
+    // Broad scan to confirm radio health and log visible APs (including hidden).
     {
         delay(500);   // let radio stabilize after mode change
         int n = WiFi.scanNetworks(false, true);   // blocking, include hidden
         Serial.printf("[scan] %d APs visible:\n", n);
         for (int i = 0; i < n; i++) {
-            String ssid = WiFi.SSID(i);
-            Serial.printf("[scan]   ch=%2d rssi=%3d auth=%d  \"%s\"\n",
-                WiFi.channel(i), WiFi.RSSI(i),
-                (int)WiFi.encryptionType(i),
+            String ssid  = WiFi.SSID(i);
+            uint8_t* bss = WiFi.BSSID(i);
+            Serial.printf("[scan]   ch=%2d rssi=%3d auth=%d  bssid=%02x:%02x:%02x:%02x:%02x:%02x  \"%s\"\n",
+                WiFi.channel(i), WiFi.RSSI(i), (int)WiFi.encryptionType(i),
+                bss[0], bss[1], bss[2], bss[3], bss[4], bss[5],
                 ssid.isEmpty() ? "<hidden>" : ssid.c_str());
         }
         WiFi.scanDelete();
