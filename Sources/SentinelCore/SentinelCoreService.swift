@@ -337,6 +337,33 @@ final class SentinelCoreService: NSObject, McBlinkXPCProtocol, @unchecked Sendab
         }
     }
 
+    // MARK: - Blink Auth
+
+    func blinkAuth(_ email: String, password: String, reply: @escaping (Data) -> Void) {
+        let r = S(v: reply)
+        Task {
+            do {
+                let data = try await BlinkBridgeAdapter.helperCommand(
+                    ["auth", "--email", email, "--password", password])
+                r.v(data.isEmpty ? encode(["status": "error", "message": "no output"]) : data)
+            } catch {
+                r.v(encode(["status": "error", "message": error.localizedDescription]))
+            }
+        }
+    }
+
+    func blinkAuthPin(_ pin: String, reply: @escaping (Data) -> Void) {
+        let r = S(v: reply)
+        Task {
+            do {
+                let data = try await BlinkBridgeAdapter.helperCommand(["auth-pin", "--pin", pin])
+                r.v(data.isEmpty ? encode(["status": "error", "message": "no output"]) : data)
+            } catch {
+                r.v(encode(["status": "error", "message": error.localizedDescription]))
+            }
+        }
+    }
+
     // MARK: - Retention cleanup
 
     private func runRetentionCleanup() async {

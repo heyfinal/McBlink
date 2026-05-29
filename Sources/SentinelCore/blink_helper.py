@@ -8,6 +8,7 @@ from blinkpy.auth import Auth
 
 CREDS = os.environ.get("BLINK_CREDS",
     os.path.expanduser("~/Library/Application Support/McBlink/blink_creds.json"))
+PARTIAL_AUTH = "/tmp/mcblink_blink_auth.json"
 
 async def connect():
     session = ClientSession()
@@ -52,6 +53,49 @@ async def cmd_snapshot(camera, out, fresh):
         print(json.dumps({"error": f"{type(e).__name__}: {e}"}))
     await session.close()
 
+async def cmd_auth(email, password):
+    """Start Blink login. Returns {"status":"ok"} or {"status":"needs_pin"} for MFA."""
+    session = ClientSession()
+    blink = Blink(session=session)
+    blink.auth = Auth({"username": email, "password": password}, no_prompt=True, session=session)
+    try:
+        await blink.start()
+    except Exception:
+        pass
+    if blink.auth.is_errored:
+        with open(PARTIAL_AUTH, "w") as f:
+            json.dump(blink.auth.login_response, f)
+        print(json.dumps({"status": "needs_pin"}))
+    else:
+        os.makedirs(os.path.dirname(CREDS), exist_ok=True)
+        blink.save(CREDS)
+        print(json.dumps({"status": "ok"}))
+    await session.close()
+
+async def cmd_auth_pin(pin):
+    """Complete Blink MFA login with the emailed/texted verification code."""
+    if not os.path.exists(PARTIAL_AUTH):
+        print(json.dumps({"status": "error",
+                          "message": "No pending auth session — run auth --email … --password … first"}))
+        return
+    with open(PARTIAL_AUTH) as f:
+        login_response = json.load(f)
+    session = ClientSession()
+    blink = Blink(session=session)
+    blink.auth = Auth(login_response, no_prompt=True, session=session)
+    try:
+        await blink.auth.send_auth_key(blink, pin)
+        os.makedirs(os.path.dirname(CREDS), exist_ok=True)
+        blink.save(CREDS)
+        try:
+            os.unlink(PARTIAL_AUTH)
+        except OSError:
+            pass
+        print(json.dumps({"status": "ok"}))
+    except Exception as e:
+        print(json.dumps({"status": "error", "message": str(e)}))
+    await session.close()
+
 def main():
     p = argparse.ArgumentParser()
     sub = p.add_subparsers(dest="cmd")
@@ -59,9 +103,16 @@ def main():
     s = sub.add_parser("snapshot")
     s.add_argument("camera"); s.add_argument("out")
     s.add_argument("--fresh", action="store_true", help="request a new thumbnail (wakes cam, uses battery)")
+    a = sub.add_parser("auth")
+    a.add_argument("--email", required=True)
+    a.add_argument("--password", required=True)
+    ap = sub.add_parser("auth-pin")
+    ap.add_argument("--pin", required=True)
     args = p.parse_args()
     if args.cmd == "cameras": asyncio.run(cmd_cameras())
     elif args.cmd == "snapshot": asyncio.run(cmd_snapshot(args.camera, args.out, args.fresh))
+    elif args.cmd == "auth": asyncio.run(cmd_auth(args.email, args.password))
+    elif args.cmd == "auth-pin": asyncio.run(cmd_auth_pin(args.pin))
     else: p.print_help()
 
 main()

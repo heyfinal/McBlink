@@ -84,7 +84,9 @@ private struct CamerasSettingsTab: View {
             }
         }
         .sheet(isPresented: $showAddCamera) {
-            CameraEditSheet(camera: nil) { profile in
+            CameraEditSheet(camera: nil,
+                            defaultSiteProfileID: appState.siteProfiles.first?.id ?? UUID()
+            ) { profile in
                 Task {
                     try? await appState.xpcClient.addCamera(profile)
                     await appState.loadCameras()
@@ -92,7 +94,9 @@ private struct CamerasSettingsTab: View {
             }
         }
         .sheet(item: $editingCamera) { camera in
-            CameraEditSheet(camera: camera) { updated in
+            CameraEditSheet(camera: camera,
+                            defaultSiteProfileID: appState.siteProfiles.first?.id ?? UUID()
+            ) { updated in
                 Task {
                     try? await appState.xpcClient.addCamera(updated)
                     await appState.loadCameras()
@@ -107,6 +111,7 @@ private struct CamerasSettingsTab: View {
 private struct CameraEditSheet: View {
 
     let camera: CameraProfile?
+    let defaultSiteProfileID: UUID
     let onSave: (CameraProfile) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -118,8 +123,9 @@ private struct CameraEditSheet: View {
     @State private var username: String
     @State private var password: String
 
-    init(camera: CameraProfile?, onSave: @escaping (CameraProfile) -> Void) {
+    init(camera: CameraProfile?, defaultSiteProfileID: UUID, onSave: @escaping (CameraProfile) -> Void) {
         self.camera = camera
+        self.defaultSiteProfileID = defaultSiteProfileID
         self.onSave = onSave
         _name = State(initialValue: camera?.name ?? "")
         _source = State(initialValue: camera?.source ?? .rtsp)
@@ -180,7 +186,7 @@ private struct CameraEditSheet: View {
             capabilities: camera?.capabilities ?? [.liveStream, .motionEvents],
             detectionZones: camera?.detectionZones ?? [],
             isArmed: camera?.isArmed ?? false,
-            siteProfileID: camera?.siteProfileID ?? UUID()
+            siteProfileID: camera?.siteProfileID ?? defaultSiteProfileID
         )
         onSave(profile)
         dismiss()
@@ -368,12 +374,28 @@ private struct RemoteAccessSettingsTab: View {
 
 private struct IntegrationsSettingsTab: View {
 
+    @EnvironmentObject private var appState: AppState
     @AppStorage("haMQTTHost")   private var haMQTTHost: String = ""
     @AppStorage("haMQTTPort")   private var haMQTTPort: Double = 1883
     @AppStorage("haMQTTTopic")  private var haMQTTTopic: String = "homeassistant/mcblink"
+    @State private var showBlinkConnect: Bool = false
+    @State private var blinkConnected: Bool = false
 
     var body: some View {
         Form {
+            Section("Blink") {
+                HStack {
+                    Image(systemName: blinkConnected ? "checkmark.circle.fill" : "xmark.circle.fill")
+                        .foregroundStyle(blinkConnected ? .green : .secondary)
+                    Text(blinkConnected ? "Connected" : "Not connected")
+                    Spacer()
+                    Button(blinkConnected ? "Re-connect" : "Connect") {
+                        showBlinkConnect = true
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+
             Section("Home Assistant — MQTT") {
                 TextField("Host", text: $haMQTTHost)
                 HStack {
@@ -393,6 +415,108 @@ private struct IntegrationsSettingsTab: View {
             }
         }
         .formStyle(.grouped)
+        .onAppear { checkBlinkStatus() }
+        .sheet(isPresented: $showBlinkConnect) {
+            BlinkConnectSheet {
+                checkBlinkStatus()
+                Task { await appState.loadCameras() }
+            }
+            .environmentObject(appState)
+        }
+    }
+
+    private func checkBlinkStatus() {
+        let credsURL = FileManager.default
+            .urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            .appendingPathComponent("McBlink/blink_creds.json")
+        blinkConnected = FileManager.default.fileExists(atPath: credsURL.path)
+    }
+}
+
+// MARK: - Blink connect sheet
+
+private struct BlinkConnectSheet: View {
+
+    let onSuccess: () -> Void
+
+    @EnvironmentObject private var appState: AppState
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var email: String = ""
+    @State private var password: String = ""
+    @State private var pin: String = ""
+    @State private var needsPin: Bool = false
+    @State private var isLoading: Bool = false
+    @State private var errorMessage: String? = nil
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                if needsPin {
+                    Section {
+                        Text("Blink sent a verification code to your email or phone. Enter it below.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        TextField("6-digit code", text: $pin)
+                            .font(.system(.body, design: .monospaced))
+                    } header: { Text("Verification") }
+                } else {
+                    Section("Blink Account") {
+                        TextField("Email", text: $email)
+                        SecureField("Password", text: $password)
+                    }
+                }
+
+                if let error = errorMessage {
+                    Section {
+                        Text(error).foregroundStyle(.red).font(.caption)
+                    }
+                }
+            }
+            .formStyle(.grouped)
+            .navigationTitle("Connect Blink")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    if isLoading {
+                        ProgressView().scaleEffect(0.8)
+                    } else {
+                        Button(needsPin ? "Verify" : "Connect") { submit() }
+                            .disabled(needsPin ? pin.count < 4 : (email.isEmpty || password.isEmpty))
+                    }
+                }
+            }
+        }
+        .frame(width: 380, height: 260)
+    }
+
+    private func submit() {
+        isLoading = true
+        errorMessage = nil
+        Task {
+            if needsPin {
+                let result = await appState.xpcClient.blinkAuthPin(pin)
+                if result.ok {
+                    onSuccess()
+                    dismiss()
+                } else {
+                    errorMessage = result.message ?? "Verification failed — check the code and try again."
+                }
+            } else {
+                let result = await appState.xpcClient.blinkAuth(email: email, password: password)
+                if result.needsPin {
+                    needsPin = true
+                } else if result.ok {
+                    onSuccess()
+                    dismiss()
+                } else {
+                    errorMessage = result.message ?? "Login failed — check your credentials."
+                }
+            }
+            isLoading = false
+        }
     }
 }
 

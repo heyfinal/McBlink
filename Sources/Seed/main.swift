@@ -38,7 +38,7 @@ let siteID = existingSites.first(where: { $0.name == siteName })?.id ?? UUID()
 
 try await db.upsertSiteProfile(SiteProfile(
     id: siteID, name: siteName, cameras: camIDs,
-    storageBasePath: clipsBase, retentionDays: 30, offsiteEnabled: false
+    storageBasePath: clipsBase, retentionDays: 7, offsiteEnabled: false
 ))
 try? FileManager.default.createDirectory(atPath: clipsBase, withIntermediateDirectories: true)
 

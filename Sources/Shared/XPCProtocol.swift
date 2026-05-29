@@ -70,6 +70,16 @@ import Foundation
 
     /// Switches the active site profile. Returns (success, errorMessage?).
     func switchSiteProfile(_ profileID: String, reply: @escaping (Bool, String?) -> Void)
+
+    // MARK: Blink Auth
+
+    /// Starts Blink account login. Returns JSON: {"status":"ok"|"needs_pin"|"error","message":"..."}.
+    /// If "needs_pin", the user must call blinkAuthPin(_:reply:) with the MFA code.
+    func blinkAuth(_ email: String, password: String, reply: @escaping (Data) -> Void)
+
+    /// Completes Blink MFA login with the verification code sent by Blink.
+    /// Returns JSON: {"status":"ok"|"error","message":"..."}.
+    func blinkAuthPin(_ pin: String, reply: @escaping (Data) -> Void)
 }
 
 // MARK: - Interface Builder
@@ -130,6 +140,18 @@ enum McBlinkXPCInterface {
         interface.setClasses(
             dataClasses as! Set<AnyHashable>,
             for: #selector(McBlinkXPCProtocol.getSiteProfiles(reply:)),
+            argumentIndex: 0,
+            ofReply: true
+        )
+        interface.setClasses(
+            dataClasses as! Set<AnyHashable>,
+            for: #selector(McBlinkXPCProtocol.blinkAuth(_:password:reply:)),
+            argumentIndex: 0,
+            ofReply: true
+        )
+        interface.setClasses(
+            dataClasses as! Set<AnyHashable>,
+            for: #selector(McBlinkXPCProtocol.blinkAuthPin(_:reply:)),
             argumentIndex: 0,
             ofReply: true
         )

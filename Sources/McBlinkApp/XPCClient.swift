@@ -319,4 +319,64 @@ final class XPCClient {
             }
         }
     }
+
+    // MARK: - Blink Auth
+
+    struct BlinkAuthResult {
+        let ok: Bool
+        let needsPin: Bool
+        let message: String?
+    }
+
+    func blinkAuth(email: String, password: String) async -> BlinkAuthResult {
+        guard let conn = connection else {
+            return BlinkAuthResult(ok: false, needsPin: false, message: "XPC not connected")
+        }
+        return await withCheckedContinuation { cont in
+            let proxy = conn.remoteObjectProxyWithErrorHandler { @Sendable err in
+                cont.resume(returning: BlinkAuthResult(ok: false, needsPin: false,
+                                                       message: err.localizedDescription))
+            }
+            guard let p = proxy as? any McBlinkXPCProtocol else {
+                cont.resume(returning: BlinkAuthResult(ok: false, needsPin: false, message: "No proxy"))
+                return
+            }
+            p.blinkAuth(email, password: password) { data in
+                cont.resume(returning: Self.parseBlinkStatus(data))
+            }
+        }
+    }
+
+    func blinkAuthPin(_ pin: String) async -> BlinkAuthResult {
+        guard let conn = connection else {
+            return BlinkAuthResult(ok: false, needsPin: false, message: "XPC not connected")
+        }
+        return await withCheckedContinuation { cont in
+            let proxy = conn.remoteObjectProxyWithErrorHandler { @Sendable err in
+                cont.resume(returning: BlinkAuthResult(ok: false, needsPin: false,
+                                                       message: err.localizedDescription))
+            }
+            guard let p = proxy as? any McBlinkXPCProtocol else {
+                cont.resume(returning: BlinkAuthResult(ok: false, needsPin: false, message: "No proxy"))
+                return
+            }
+            p.blinkAuthPin(pin) { data in
+                cont.resume(returning: Self.parseBlinkStatus(data))
+            }
+        }
+    }
+
+    private static func parseBlinkStatus(_ data: Data) -> BlinkAuthResult {
+        guard
+            let dict = try? JSONDecoder().decode([String: String].self, from: data)
+        else {
+            return BlinkAuthResult(ok: false, needsPin: false, message: "Invalid response from helper")
+        }
+        let status = dict["status"] ?? ""
+        return BlinkAuthResult(
+            ok: status == "ok",
+            needsPin: status == "needs_pin",
+            message: dict["message"]
+        )
+    }
 }

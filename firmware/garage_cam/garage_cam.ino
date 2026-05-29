@@ -241,11 +241,14 @@ static void applyWifiConfig() {
     wifi_config_t cfg = {};
     memcpy(cfg.sta.ssid,     WIFI_SSID, strlen(WIFI_SSID));
     memcpy(cfg.sta.password, WIFI_PASS,  strlen(WIFI_PASS));
-    cfg.sta.threshold.authmode = WIFI_AUTH_WPA3_PSK;   // WPA3-SAE only; BGW may be WPA3-only mode
-    cfg.sta.sae_pwe_h2e        = WPA3_SAE_PWE_HUNT_AND_PECK;  // avoid H2E for BGW compat
+    // WPA2/WPA3 mixed: AT&T BGW runs WPA3-Personal Transition mode.
+    // WPA3-only (WIFI_AUTH_WPA3_PSK) triggers reason=211 SAE_CONFIRM_MISMATCH.
+    // Mixed mode lets the ESP32 negotiate WPA2 if the SAE exchange fails.
+    cfg.sta.threshold.authmode = WIFI_AUTH_WPA2_WPA3_PSK;
+    cfg.sta.sae_pwe_h2e        = WPA3_SAE_PWE_HUNT_AND_PECK;  // H&P for BGW compat
     cfg.sta.channel            = 11;    // "Yes" is 2.4 GHz ch=11; skip full scan
     cfg.sta.pmf_cfg.capable    = true;
-    cfg.sta.pmf_cfg.required   = true;   // WPA3 mandates PMF required
+    cfg.sta.pmf_cfg.required   = false;  // capable not required; required blocks WPA2 fallback
     esp_wifi_set_config(WIFI_IF_STA, &cfg);
 }
 

@@ -192,6 +192,32 @@ actor BlinkBridgeAdapter: CameraAdapter {
         }
     }
 
+    /// Static entry-point so SentinelCoreService can run auth commands
+    /// (which are account-wide, not per-camera) using the same venv + helper paths.
+    static func helperCommand(_ args: [String]) async throws -> Data {
+        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Data, Error>) in
+            DispatchQueue.global(qos: .utility).async {
+                let proc = Process()
+                proc.executableURL = URL(fileURLWithPath: Self.pythonPath)
+                proc.arguments     = [Self.helperPath] + args
+                proc.environment   = ProcessInfo.processInfo.environment
+                    .merging(["BLINK_CREDS": Self.credsPath]) { _, new in new }
+                let outPipe = Pipe()
+                proc.standardOutput = outPipe
+                proc.standardError  = Pipe()
+                do {
+                    try proc.run()
+                } catch {
+                    cont.resume(throwing: error)
+                    return
+                }
+                let out = outPipe.fileHandleForReading.readDataToEndOfFile()
+                proc.waitUntilExit()
+                cont.resume(returning: out)
+            }
+        }
+    }
+
     /// Runs an arbitrary executable and waits for it to exit.
     /// Throws XPCError.connectionFailed if the process exits non-zero.
     private func runProcess(_ executable: String, args: [String]) async throws {
