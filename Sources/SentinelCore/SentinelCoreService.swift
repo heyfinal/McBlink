@@ -36,44 +36,79 @@ final class SentinelCoreService: NSObject, McBlinkXPCProtocol, @unchecked Sendab
     private let encryption: EncryptionManager
     private let alerts: AlertManager
     private let health: HealthCollector
+    private let ai: AIDetectionPipeline
     private let cameras: CameraManager
     private let offsite: AnyOffsiteSync
+
+    /// Holds the running blink_helper auth process between blinkAuth (start)
+    /// and blinkAuthPin (send PIN). The OAuth2 PKCE state + session cookies
+    /// only live inside this single process.
+    private var pendingBlinkAuth: PendingBlinkAuth?
+
+    private struct PendingBlinkAuth {
+        let process: Process
+        let outPipe: Pipe
+        let inPipe: Pipe
+    }
 
     private override init() {
         let dbManager = DatabaseManager()
         let enc       = EncryptionManager()
-        let alertMgr  = AlertManager()
+        let alertMgr  = AlertManager(db: dbManager)
         let healthMgr = HealthCollector(db: dbManager)
         let recording = RecordingEngine()
+        let aiPipeline = AIDetectionPipeline()
         db         = dbManager
         encryption = enc
         alerts     = alertMgr
         health     = healthMgr
+        ai         = aiPipeline
         cameras    = CameraManager(
             healthCollector: healthMgr,
             recordingEngine: recording,
             encryptionManager: enc,
-            db: dbManager
+            db: dbManager,
+            ai: aiPipeline,
+            alerts: alertMgr
         )
         offsite    = AnyOffsiteSync()
         super.init()
         Task { [db, cameras] in
-            try? await encryption.generateKeyIfNeeded()
-            // Notification permission is requested by the host app delegate.
-            // UNUserNotificationCenter is not callable from an XPC service —
-            // doing so crashes with an NSAssertion abort.
+            do {
+                try await encryption.generateKeyIfNeeded()
+            } catch {
+                NSLog("[McBlink] encryption key init failed: %@", String(describing: error))
+            }
 
-            // Bring up adapters for every camera already in the DB. The seed
-            // tool writes profiles directly, bypassing addCamera/registerCamera,
-            // so without this pass no polling/snapshot/health work ever starts.
-            // Register in parallel — each Blink adapter.connect() is ~5s of
-            // Python helper startup, so 4 sequential registrations would mean
-            // ~20s before all cameras are reachable for snapshot requests.
-            let profiles = (try? await db.fetchAllCameraProfiles()) ?? []
+            let profiles: [CameraProfile]
+            do {
+                profiles = try await db.fetchAllCameraProfiles()
+            } catch {
+                NSLog("[McBlink] failed to load camera profiles: %@", String(describing: error))
+                profiles = []
+            }
+            let blinkProfiles = profiles.filter { $0.source == .blink }
+            let otherProfiles = profiles.filter { $0.source != .blink }
+
+            // Prefetch Blink camera list ONCE — one auth, one MFA cycle max.
+            // All Blink adapters then validate against the cached list.
+            if !blinkProfiles.isEmpty {
+                do {
+                    try await BlinkBridgeAdapter.prefetchCameraList()
+                } catch {
+                    NSLog("[McBlink] Blink prefetch failed: %@", String(describing: error))
+                }
+            }
+
             await withTaskGroup(of: Void.self) { group in
-                for profile in profiles {
+                for profile in blinkProfiles + otherProfiles {
                     group.addTask { [cameras] in
-                        try? await cameras.registerCamera(profile)
+                        do {
+                            try await cameras.registerCamera(profile)
+                        } catch {
+                            NSLog("[McBlink] failed to register camera '%@': %@",
+                                  profile.name, String(describing: error))
+                        }
                     }
                 }
             }
@@ -101,7 +136,7 @@ final class SentinelCoreService: NSObject, McBlinkXPCProtocol, @unchecked Sendab
         // Observe ESP32-CAM motion events and deliver a user notification.
         // ESP32CAMAdapter posts .esp32MotionDetected (with "cameraID") instead of
         // running the Vision pipeline, so it bypasses sendDetectionAlert entirely.
-        NotificationCenter.default.addObserver(
+        motionObserver = NotificationCenter.default.addObserver(
             forName: .esp32MotionDetected,
             object: nil,
             queue: nil
@@ -117,6 +152,7 @@ final class SentinelCoreService: NSObject, McBlinkXPCProtocol, @unchecked Sendab
     }
 
     private var retentionTask: Task<Void, Never>?
+    private var motionObserver: NSObjectProtocol?
 
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
@@ -201,11 +237,25 @@ final class SentinelCoreService: NSObject, McBlinkXPCProtocol, @unchecked Sendab
     func getRecentEvents(_ cameraID: String, limit: Int, reply: @escaping (Data) -> Void) {
         let r = S(v: reply)
         Task {
-            guard let id = UUID(uuidString: cameraID) else {
-                r.v(encode([DetectionEvent]())) ; return
+            if cameraID.isEmpty {
+                // Query all cameras, merge and sort by timestamp descending
+                let profiles = (try? await db.fetchAllCameraProfiles()) ?? []
+                var allEvents: [DetectionEvent] = []
+                for profile in profiles {
+                    let events = (try? await db.fetchEvents(
+                        cameraID: profile.id, startTime: nil, endTime: nil, limit: limit)) ?? []
+                    allEvents.append(contentsOf: events)
+                }
+                allEvents.sort { $0.timestamp > $1.timestamp }
+                r.v(encode(Array(allEvents.prefix(limit))))
+            } else {
+                guard let id = UUID(uuidString: cameraID) else {
+                    r.v(encode([DetectionEvent]())) ; return
+                }
+                let events = (try? await db.fetchEvents(
+                    cameraID: id, startTime: nil, endTime: nil, limit: limit)) ?? []
+                r.v(encode(events))
             }
-            let events = (try? await db.fetchEvents(cameraID: id, startTime: nil, endTime: nil, limit: limit)) ?? []
-            r.v(encode(events))
         }
     }
 
@@ -267,11 +317,28 @@ final class SentinelCoreService: NSObject, McBlinkXPCProtocol, @unchecked Sendab
         let r = S(v: reply)
         Task {
             guard let id = UUID(uuidString: clipID) else { r.v(false, "Invalid clip UUID"); return }
+
+            // Path traversal guard: reject paths containing ".." or symlinks
+            // to locations outside safe export directories.
+            let destURL = URL(fileURLWithPath: toPath).standardized
+            let destPath = destURL.path
+            if destPath.contains("..") {
+                r.v(false, "Invalid export path"); return
+            }
+            let home = NSHomeDirectory()
+            let safePrefix = [
+                home + "/Downloads", home + "/Desktop",
+                home + "/Documents", NSTemporaryDirectory()
+            ]
+            guard safePrefix.contains(where: { destPath.hasPrefix($0) }) else {
+                r.v(false, "Export path must be in Downloads, Desktop, Documents, or a temp directory"); return
+            }
+
             guard let clip = try? await db.fetchClipRecord(id: id) else { r.v(false, "Clip not found"); return }
             do {
                 try await encryption.decryptFile(
                     at: URL(fileURLWithPath: clip.encryptedPath),
-                    to: URL(fileURLWithPath: toPath)
+                    to: destURL
                 )
                 r.v(true, nil)
             } catch { r.v(false, error.localizedDescription) }
@@ -337,46 +404,190 @@ final class SentinelCoreService: NSObject, McBlinkXPCProtocol, @unchecked Sendab
         }
     }
 
-    // MARK: - Blink Auth
+    // MARK: - Settings
 
-    func blinkAuth(_ email: String, password: String, reply: @escaping (Data) -> Void) {
+    func updateSettings(_ data: Data, reply: @escaping (Bool) -> Void) {
         let r = S(v: reply)
         Task {
             do {
-                let data = try await BlinkBridgeAdapter.helperCommand(
-                    ["auth", "--email", email, "--password", password])
-                r.v(data.isEmpty ? encode(["status": "error", "message": "no output"]) : data)
+                let settings = try decode(AppSettings.self, from: data)
+                try await db.upsertSettings(settings)
+                r.v(true)
             } catch {
-                r.v(encode(["status": "error", "message": error.localizedDescription]))
+                NSLog("[McBlink] updateSettings failed: %@", String(describing: error))
+                r.v(false)
+            }
+        }
+    }
+
+    func getSettings(reply: @escaping (Data) -> Void) {
+        let r = S(v: reply)
+        Task {
+            let settings = (try? await db.fetchSettings()) ?? AppSettings()
+            r.v(encode(settings))
+        }
+    }
+
+    // MARK: - Credentials
+
+    func storeCameraCredential(_ cameraID: String, password: String, reply: @escaping (Bool) -> Void) {
+        let r = S(v: reply)
+        Task {
+            do {
+                let credsDir = FileManager.default
+                    .urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+                    .appendingPathComponent("McBlink/creds", isDirectory: true)
+                try FileManager.default.createDirectory(at: credsDir, withIntermediateDirectories: true)
+                let credFile = credsDir.appendingPathComponent("\(cameraID).cred")
+                try password.write(to: credFile, atomically: true, encoding: .utf8)
+                try FileManager.default.setAttributes(
+                    [.posixPermissions: 0o600], ofItemAtPath: credFile.path)
+                r.v(true)
+            } catch {
+                NSLog("[McBlink] storeCameraCredential failed: %@", String(describing: error))
+                r.v(false)
+            }
+        }
+    }
+
+    // MARK: - Blink Auth (interactive single-process flow)
+
+    func blinkAuth(_ email: String, password: String, reply: @escaping (Data) -> Void) {
+        let r = S(v: reply)
+        // Kill any leftover auth process from a previous attempt.
+        pendingBlinkAuth?.process.terminate()
+        pendingBlinkAuth = nil
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            guard let self else {
+                r.v(self?.encode(["status": "error", "message": "service deallocated"]) ?? Data())
+                return
+            }
+            let proc = Process()
+            proc.executableURL = URL(fileURLWithPath: BlinkBridgeAdapter.pythonPath)
+            proc.arguments    = [BlinkBridgeAdapter.helperPath, "auth", "--stdin"]
+            proc.environment  = ProcessInfo.processInfo.environment
+                .merging(["BLINK_CREDS": BlinkBridgeAdapter.credsPath]) { _, new in new }
+            let outPipe = Pipe()
+            let inPipe  = Pipe()
+            proc.standardOutput = outPipe
+            proc.standardError  = Pipe()
+            proc.standardInput  = inPipe
+            do {
+                try proc.run()
+            } catch {
+                r.v(self.encode(["status": "error", "message": error.localizedDescription]))
+                return
+            }
+            // Write email + password to stdin. The helper reads these first.
+            let creds = "\(email)\n\(password)\n"
+            inPipe.fileHandleForWriting.write(creds.data(using: .utf8)!)
+            // Do NOT close stdin yet — helper may need to read PIN later.
+
+            // Read first JSON line from stdout.
+            guard let firstLine = self.readLine(from: outPipe) else {
+                proc.terminate()
+                r.v(self.encode(["status": "error", "message": "no output from helper"]))
+                return
+            }
+            // Check if 2FA is required.
+            if let obj = try? JSONSerialization.jsonObject(with: firstLine) as? [String: Any],
+               obj["status"] as? String == "needs_pin" {
+                // Hold the process — blinkAuthPin will feed the PIN.
+                self.pendingBlinkAuth = PendingBlinkAuth(process: proc, outPipe: outPipe, inPipe: inPipe)
+                r.v(firstLine)
+            } else {
+                // Auth completed (ok or error) — process will exit.
+                inPipe.fileHandleForWriting.closeFile()
+                proc.waitUntilExit()
+                r.v(firstLine)
             }
         }
     }
 
     func blinkAuthPin(_ pin: String, reply: @escaping (Data) -> Void) {
         let r = S(v: reply)
-        Task {
-            do {
-                let data = try await BlinkBridgeAdapter.helperCommand(["auth-pin", "--pin", pin])
-                r.v(data.isEmpty ? encode(["status": "error", "message": "no output"]) : data)
-            } catch {
-                r.v(encode(["status": "error", "message": error.localizedDescription]))
+        guard let pending = pendingBlinkAuth else {
+            r.v(encode(["status": "error", "message": "no pending auth session"]))
+            return
+        }
+        pendingBlinkAuth = nil
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            // Write PIN to the waiting helper process.
+            let pinData = "\(pin)\n".data(using: .utf8)!
+            pending.inPipe.fileHandleForWriting.write(pinData)
+            pending.inPipe.fileHandleForWriting.closeFile()
+            // Read final result line.
+            guard let self,
+                  let result = self.readLine(from: pending.outPipe) else {
+                pending.process.terminate()
+                r.v(self?.encode(["status": "error", "message": "no output after PIN"]) ?? Data())
+                return
             }
+            pending.process.waitUntilExit()
+            r.v(result)
+        }
+    }
+
+    /// Reads a single newline-terminated JSON line from a pipe.
+    private func readLine(from pipe: Pipe) -> Data? {
+        let handle = pipe.fileHandleForReading
+        var buffer = Data()
+        while true {
+            let chunk = handle.availableData
+            if chunk.isEmpty { break }  // EOF
+            buffer.append(chunk)
+            if buffer.contains(UInt8(ascii: "\n")) { break }
+        }
+        guard !buffer.isEmpty else { return nil }
+        // Trim trailing newline.
+        if buffer.last == UInt8(ascii: "\n") { buffer.removeLast() }
+        return buffer
+    }
+
+    // MARK: - ESP32-CAM controls
+
+    func esp32SetFlash(_ cameraID: String, on: Bool, reply: @escaping (Bool) -> Void) {
+        let r = S(v: reply)
+        Task {
+            guard let id = UUID(uuidString: cameraID) else { r.v(false); return }
+            do {
+                try await cameras.esp32SetFlash(id, on: on)
+                r.v(true)
+            } catch { r.v(false) }
         }
     }
 
     // MARK: - Retention cleanup
 
     private func runRetentionCleanup() async {
-        // Use the first site profile's retention setting; fall back to 7 days.
-        let days: Int
-        if let profiles = try? await db.fetchAllSiteProfiles(), let first = profiles.first {
-            days = first.retentionDays
-        } else {
-            days = 7
+        let settings = (try? await db.fetchSettings()) ?? AppSettings()
+        let days = settings.retentionDays
+        do {
+            let deleted = try await db.deleteClipsOlderThan(days: days)
+            if deleted > 0 {
+                NSLog("[McBlink] retention: purged %d clips older than %d days", deleted, days)
+            }
+        } catch {
+            NSLog("[McBlink] retention cleanup failed: %@", String(describing: error))
         }
-        let deleted = (try? await db.deleteClipsOlderThan(days: days)) ?? 0
-        if deleted > 0 {
-            NSLog("[McBlink] retention: purged %d clips older than %d days", deleted, days)
+        do {
+            let purged = try await db.deleteHealthLogsOlderThan(days: 30)
+            if purged > 0 {
+                NSLog("[McBlink] retention: purged %d health log entries older than 30 days", purged)
+            }
+        } catch {
+            NSLog("[McBlink] health log cleanup failed: %@", String(describing: error))
+        }
+
+        // Check storage usage against maxDiskGB and alert if above 90%
+        let maxBytes = Int64(settings.maxDiskGB) * 1_073_741_824
+        if maxBytes > 0 {
+            let reports = await health.getAllReports()
+            let totalUsed = reports.reduce(Int64(0)) { $0 + $1.storageUsedBytes }
+            let percentUsed = Double(totalUsed) / Double(maxBytes) * 100
+            if percentUsed > 90 {
+                await alerts.sendStorageAlert(percentUsed: percentUsed)
+            }
         }
     }
 }

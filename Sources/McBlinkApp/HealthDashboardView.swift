@@ -7,7 +7,7 @@ import SwiftUI
 struct HealthDashboardView: View {
 
     @EnvironmentObject private var appState: AppState
-    @State private var refreshTimer: Timer? = nil
+    @State private var pollTask: Task<Void, Never>? = nil
     @State private var now: Date = Date()
 
     private var offlineAlertCameras: [CameraProfile] {
@@ -77,11 +77,11 @@ struct HealthDashboardView: View {
         }
         .task {
             await appState.refreshHealth()
-            startTimer()
+            startPolling()
         }
         .onDisappear {
-            refreshTimer?.invalidate()
-            refreshTimer = nil
+            pollTask?.cancel()
+            pollTask = nil
         }
     }
 
@@ -163,9 +163,14 @@ struct HealthDashboardView: View {
 
     // MARK: - Timer
 
-    private func startTimer() {
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in
-            Task { await appState.refreshHealth() }
+    private func startPolling() {
+        pollTask?.cancel()
+        pollTask = Task { @MainActor in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 30_000_000_000)
+                guard !Task.isCancelled else { break }
+                await appState.refreshHealth()
+            }
         }
     }
 }

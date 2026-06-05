@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		C3D4E5F6A7B8C9D0E1F2A3B4 /* blink_helper.py in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* blink_helper.py */; };
-		D4E5F6A7B8C9D0E1F2A3B4C5 /* requirements.txt in Resources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6A7B8C9D0E1F2A3 /* requirements.txt */; };
 		02175638A8DF6A08D724E7A5 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = FD3140F0C682FBBE87A0255F /* GRDB */; };
 		06CC1F8C892046F6B27FAC51 /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F6644F6BE866F8DE1B45290 /* CameraManager.swift */; };
 		0BB68B7C6A106E703F2CF0B3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B37654796A9A52E1D916D932 /* ContentView.swift */; };
@@ -34,13 +32,12 @@
 		5206179372D12037C5E34CC0 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A7E4F49251790D4A208381C /* main.swift */; };
 		52A7A9AFC061E244185AD20A /* RecordingEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 369F8EB0AB5348B5944DB21D /* RecordingEngineTests.swift */; };
 		550B4BF4C3EE416D60717492 /* SentinelServiceDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBA5C1DE4DD05DD7723E839B /* SentinelServiceDelegate.swift */; };
-		584C4C4801D4D29A0171646D /* BlinkAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 616CE9F42DD5B2DD977A234A /* BlinkAPIClient.swift */; };
 		6404FA6C0C21CF26FF0C78AB /* LocalAuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3189C599BA113F96DFBA8A9 /* LocalAuthView.swift */; };
 		66CFCE29F7A43293068913BA /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 081B2D969AEF26301A0BD8FF /* Models.swift */; };
+		6BCF14243535FD55D4179DDD /* blink_helper.py in Resources */ = {isa = PBXBuildFile; fileRef = FD5A9396FFA5B19DF73F12E8 /* blink_helper.py */; };
 		6F69A9705B3376B5F8882CA5 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 081B2D969AEF26301A0BD8FF /* Models.swift */; };
 		7211B62BD4A141C28A8356C2 /* XPCClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6BE176F6B0E2BDCE5D25015 /* XPCClient.swift */; };
 		7838B06BE9A3C98D22165C46 /* CameraAdapterProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5AA972541B5FC643A1930C /* CameraAdapterProtocol.swift */; };
-		7E9E0C10B273E81FEDB8FA2D /* BlinkAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 616CE9F42DD5B2DD977A234A /* BlinkAPIClient.swift */; };
 		8246BE44447952D3C495E179 /* McBlinkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62E2802782D91C47F68879E0 /* McBlinkApp.swift */; };
 		833442CAA21DE113664592BB /* DatabaseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0620F5AC1A173369419C7BE0 /* DatabaseManager.swift */; };
 		872CF3551F88F4BEA317DBE7 /* XPCProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D60EF2025E2F1BE6FEFDEA96 /* XPCProtocol.swift */; };
@@ -48,8 +45,8 @@
 		9F7C1EA7AE3C5C6D05BC97D3 /* RecordingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFE70337A8CB8DF364B008D5 /* RecordingEngine.swift */; };
 		A65D80FF825929D3A5DBC5E4 /* AlertManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAE6FA84676254F9F8F86F20 /* AlertManager.swift */; };
 		A665F0DD20642CDF3E04826A /* RecordingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFE70337A8CB8DF364B008D5 /* RecordingEngine.swift */; };
+		B2A91FE4475D2CD6A7FD575F /* requirements.txt in Resources */ = {isa = PBXBuildFile; fileRef = 23E44363A3DA33A6AE65DCCC /* requirements.txt */; };
 		B623A1F2EE352D9845B93447 /* HealthCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFEF70FE960EF68A55EEAE5F /* HealthCollector.swift */; };
-		B77B0EC332C49FEA1179B91B /* BlinkAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 167EACE2EA8D08BBF3D3C502 /* BlinkAdapter.swift */; };
 		C56A98936294BFB632F6FB58 /* SentinelCoreService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7FCA68BC231A6CFD1BEA350 /* SentinelCoreService.swift */; };
 		C9575CEE126D13C2A95392DF /* RTSPAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B62C247293D1475D4E68BEF0 /* RTSPAdapter.swift */; };
 		CBEED348EF6A1481CD278819 /* CameraGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BE6162A4AB5E0325677BAD4 /* CameraGridView.swift */; };
@@ -62,7 +59,6 @@
 		E49737CA77A0AFD4119A2444 /* TimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFF4A5896F8C9E98DB12E359 /* TimelineView.swift */; };
 		E7DCDAA9C89FFE0D569A4B42 /* CameraAdapterFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DF8F1671FBF5A7C07187558 /* CameraAdapterFactory.swift */; };
 		EB8A0C05B51C62B37F0DCACC /* AIDetectionPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 994616E810FB35F6F5BC438A /* AIDetectionPipelineTests.swift */; };
-		ED03D91BFBDA829B9035796C /* BlinkAPIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E510B28EF8C3C322F5CCA642 /* BlinkAPIClientTests.swift */; };
 		EEE3327726D65B23209A4833 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 081B2D969AEF26301A0BD8FF /* Models.swift */; };
 		F85D800C8346307098427C4A /* AIDetectionPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3AD8F98EB03599A8B1648DA /* AIDetectionPipeline.swift */; };
 		FA0229162DCD645CD1C0253C /* CameraDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD344C3DC3F64A276FDDDAAE /* CameraDetailView.swift */; };
@@ -92,8 +88,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		A1B2C3D4E5F6A7B8C9D0E1F2 /* blink_helper.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = blink_helper.py; sourceTree = "<group>"; };
-		B2C3D4E5F6A7B8C9D0E1F2A3 /* requirements.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = requirements.txt; sourceTree = "<group>"; };
 		009EE480BEA418496E0449AA /* mcblink-seed */ = {isa = PBXFileReference; includeInIndex = 0; path = "mcblink-seed"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0620F5AC1A173369419C7BE0 /* DatabaseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseManager.swift; sourceTree = "<group>"; };
 		081B2D969AEF26301A0BD8FF /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
@@ -101,16 +95,15 @@
 		0E4AB3F3C428E2CBE4526B64 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		11A3AC408C1B8DD27217A967 /* BlinkBridgeAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlinkBridgeAdapter.swift; sourceTree = "<group>"; };
 		11CE269D42706E4A329F1F4D /* EncryptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncryptionManager.swift; sourceTree = "<group>"; };
-		167EACE2EA8D08BBF3D3C502 /* BlinkAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlinkAdapter.swift; sourceTree = "<group>"; };
 		1A9E2CC601E22E4431FAC4AB /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		1C603BE532AB75EB9DB0C83C /* MJPEGAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MJPEGAdapter.swift; sourceTree = "<group>"; };
+		23E44363A3DA33A6AE65DCCC /* requirements.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = requirements.txt; sourceTree = "<group>"; };
 		369F8EB0AB5348B5944DB21D /* RecordingEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingEngineTests.swift; sourceTree = "<group>"; };
 		3F6644F6BE866F8DE1B45290 /* CameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraManager.swift; sourceTree = "<group>"; };
 		472EF3E71462074D90EBA9B3 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		4A7E4F49251790D4A208381C /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		4BE6162A4AB5E0325677BAD4 /* CameraGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraGridView.swift; sourceTree = "<group>"; };
 		572744987FD4004CE701A9A4 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		616CE9F42DD5B2DD977A234A /* BlinkAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlinkAPIClient.swift; sourceTree = "<group>"; };
 		62E2802782D91C47F68879E0 /* McBlinkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = McBlinkApp.swift; sourceTree = "<group>"; };
 		6DF8F1671FBF5A7C07187558 /* CameraAdapterFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraAdapterFactory.swift; sourceTree = "<group>"; };
 		73D1E04B3DE6E929F5E13E07 /* ESP32CAMAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ESP32CAMAdapter.swift; sourceTree = "<group>"; };
@@ -132,12 +125,12 @@
 		DD5AA972541B5FC643A1930C /* CameraAdapterProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraAdapterProtocol.swift; sourceTree = "<group>"; };
 		DFE70337A8CB8DF364B008D5 /* RecordingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingEngine.swift; sourceTree = "<group>"; };
 		DFF4A5896F8C9E98DB12E359 /* TimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineView.swift; sourceTree = "<group>"; };
-		E510B28EF8C3C322F5CCA642 /* BlinkAPIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlinkAPIClientTests.swift; sourceTree = "<group>"; };
 		EAC51BF05CF21B3D45F57EED /* CodableModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodableModelsTests.swift; sourceTree = "<group>"; };
 		ED86C3E964C6D31B0E657D97 /* SentinelCore.xpc */ = {isa = PBXFileReference; explicitFileType = "wrapper.xpc-service"; includeInIndex = 0; path = SentinelCore.xpc; sourceTree = BUILT_PRODUCTS_DIR; };
 		F097086FAE2B2C2C9056E494 /* McBlinkApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = McBlinkApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F3AD8F98EB03599A8B1648DA /* AIDetectionPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIDetectionPipeline.swift; sourceTree = "<group>"; };
 		F814B887168D083814EDB08E /* MockURLProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockURLProtocol.swift; sourceTree = "<group>"; };
+		FD5A9396FFA5B19DF73F12E8 /* blink_helper.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = blink_helper.py; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -181,7 +174,6 @@
 			isa = PBXGroup;
 			children = (
 				994616E810FB35F6F5BC438A /* AIDetectionPipelineTests.swift */,
-				E510B28EF8C3C322F5CCA642 /* BlinkAPIClientTests.swift */,
 				EAC51BF05CF21B3D45F57EED /* CodableModelsTests.swift */,
 				F814B887168D083814EDB08E /* MockURLProtocol.swift */,
 				369F8EB0AB5348B5944DB21D /* RecordingEngineTests.swift */,
@@ -216,8 +208,7 @@
 			children = (
 				F3AD8F98EB03599A8B1648DA /* AIDetectionPipeline.swift */,
 				BAE6FA84676254F9F8F86F20 /* AlertManager.swift */,
-				167EACE2EA8D08BBF3D3C502 /* BlinkAdapter.swift */,
-				616CE9F42DD5B2DD977A234A /* BlinkAPIClient.swift */,
+				FD5A9396FFA5B19DF73F12E8 /* blink_helper.py */,
 				11A3AC408C1B8DD27217A967 /* BlinkBridgeAdapter.swift */,
 				6DF8F1671FBF5A7C07187558 /* CameraAdapterFactory.swift */,
 				3F6644F6BE866F8DE1B45290 /* CameraManager.swift */,
@@ -229,10 +220,9 @@
 				472EF3E71462074D90EBA9B3 /* main.swift */,
 				1C603BE532AB75EB9DB0C83C /* MJPEGAdapter.swift */,
 				DFE70337A8CB8DF364B008D5 /* RecordingEngine.swift */,
+				23E44363A3DA33A6AE65DCCC /* requirements.txt */,
 				B62C247293D1475D4E68BEF0 /* RTSPAdapter.swift */,
 				C7FCA68BC231A6CFD1BEA350 /* SentinelCoreService.swift */,
-				A1B2C3D4E5F6A7B8C9D0E1F2 /* blink_helper.py */,
-				B2C3D4E5F6A7B8C9D0E1F2A3 /* requirements.txt */,
 				BBA5C1DE4DD05DD7723E839B /* SentinelServiceDelegate.swift */,
 			);
 			name = SentinelCore;
@@ -375,8 +365,8 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = BFA8B970BB17774D62400D8F /* Build configuration list for PBXNativeTarget "SentinelCore" */;
 			buildPhases = (
-				E5F6A7B8C9D0E1F2A3B4C5D6 /* Resources */,
 				4EECE2F8E0D51880A3117956 /* Sources */,
+				FFF13DF74709FEF6E1D0793C /* Resources */,
 				408B658C5C4D760167F56E94 /* Frameworks */,
 			);
 			buildRules = (
@@ -444,14 +434,13 @@
 		};
 /* End PBXProject section */
 
-
 /* Begin PBXResourcesBuildPhase section */
-		E5F6A7B8C9D0E1F2A3B4C5D6 /* Resources */ = {
+		FFF13DF74709FEF6E1D0793C /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C3D4E5F6A7B8C9D0E1F2A3B4 /* blink_helper.py in Resources */,
-				D4E5F6A7B8C9D0E1F2A3B4C5 /* requirements.txt in Resources */,
+				6BCF14243535FD55D4179DDD /* blink_helper.py in Resources */,
+				B2A91FE4475D2CD6A7FD575F /* requirements.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -494,8 +483,6 @@
 			files = (
 				4955ED4D8100E7175B7DDC47 /* AIDetectionPipeline.swift in Sources */,
 				A65D80FF825929D3A5DBC5E4 /* AlertManager.swift in Sources */,
-				584C4C4801D4D29A0171646D /* BlinkAPIClient.swift in Sources */,
-				B77B0EC332C49FEA1179B91B /* BlinkAdapter.swift in Sources */,
 				48DDBF167F1941C7603C4905 /* BlinkBridgeAdapter.swift in Sources */,
 				E7DCDAA9C89FFE0D569A4B42 /* CameraAdapterFactory.swift in Sources */,
 				2F3B02ED9F7AED9376E896DC /* CameraAdapterProtocol.swift in Sources */,
@@ -532,8 +519,6 @@
 			files = (
 				F85D800C8346307098427C4A /* AIDetectionPipeline.swift in Sources */,
 				EB8A0C05B51C62B37F0DCACC /* AIDetectionPipelineTests.swift in Sources */,
-				7E9E0C10B273E81FEDB8FA2D /* BlinkAPIClient.swift in Sources */,
-				ED03D91BFBDA829B9035796C /* BlinkAPIClientTests.swift in Sources */,
 				2E6666B377FEAEA5F72B5BE7 /* CodableModelsTests.swift in Sources */,
 				3F002B00427FCB974B4E76E5 /* DatabaseManager.swift in Sources */,
 				1536C43C9F3BC0050B33F38C /* EncryptionManager.swift in Sources */,

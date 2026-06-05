@@ -123,7 +123,6 @@ targets:
       - path: Tests/McBlinkTests
       # Compile self-contained logic sources directly (SentinelCore is an
       # xpc-service, so @testable import is not available to a logic bundle).
-      - path: Sources/SentinelCore/BlinkAPIClient.swift
       - path: Sources/SentinelCore/RecordingEngine.swift
       - path: Sources/SentinelCore/EncryptionManager.swift
       - path: Sources/SentinelCore/DatabaseManager.swift

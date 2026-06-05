@@ -83,7 +83,11 @@ struct ContentView: View {
     private var camerasSection: some View {
         Section("Cameras") {
             ForEach(appState.cameras) { camera in
-                CameraSidebarRow(camera: camera, isSelected: selectedCameraID == camera.id)
+                CameraSidebarRow(
+                    camera: camera,
+                    isSelected: selectedCameraID == camera.id,
+                    healthReport: appState.healthReport(for: camera.id)
+                )
                     .onTapGesture {
                         selectedCameraID = camera.id
                         selectedDestination = .cameraGrid
@@ -204,6 +208,7 @@ struct ContentView: View {
 private struct CameraSidebarRow: View {
     let camera: CameraProfile
     let isSelected: Bool
+    let healthReport: HealthReport?
 
     var body: some View {
         HStack(spacing: 8) {
@@ -223,8 +228,12 @@ private struct CameraSidebarRow: View {
     }
 
     private var statusColor: Color {
-        switch camera.source {
-        default: return .green
+        guard let report = healthReport else { return .gray }
+        switch report.status {
+        case .online:    return .green
+        case .offline:   return .red
+        case .degraded:  return .orange
+        case .connecting: return .yellow
         }
     }
 }

@@ -41,7 +41,7 @@ actor BlinkBridgeAdapter: CameraAdapter {
     }
 
     /// blink_creds.json: Application Support first, legacy path as fallback.
-    private static var credsPath: String {
+    static var credsPath: String {
         let primary = appSupportDir.appendingPathComponent("blink_creds.json").path
         if FileManager.default.fileExists(atPath: primary) { return primary }
         // Migrate creds from the old location on first run.
@@ -56,7 +56,7 @@ actor BlinkBridgeAdapter: CameraAdapter {
     }
 
     /// blink_helper.py: bundled resource first, Application Support copy as fallback.
-    private static var helperPath: String {
+    static var helperPath: String {
         if let bundled = Bundle.main.path(forResource: "blink_helper", ofType: "py") {
             return bundled
         }
@@ -65,7 +65,7 @@ actor BlinkBridgeAdapter: CameraAdapter {
     }
 
     /// Python interpreter: venv if it exists, system python3 otherwise.
-    private static var pythonPath: String {
+    static var pythonPath: String {
         FileManager.default.fileExists(atPath: venvPython)
             ? venvPython
             : "/usr/bin/python3"
@@ -78,11 +78,44 @@ actor BlinkBridgeAdapter: CameraAdapter {
 
     // MARK: - CameraAdapter
 
+    /// Pre-fetches the Blink camera list once, caching it for all adapters.
+    /// Call this BEFORE registering individual Blink cameras to avoid
+    /// N parallel auth attempts that each trigger MFA codes.
+    static func prefetchCameraList() async throws {
+        // Ensure venv exists (needs a throwaway adapter for ensureVenv).
+        let probe = BlinkBridgeAdapter(
+            profile: CameraProfile(name: "_prefetch", source: .blink,
+                                   streamURL: "", siteProfileID: UUID())
+        )
+        try await probe.ensureVenv()
+        let data = try await helperCommand(["cameras"])
+        guard
+            let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let cams = obj["cameras"] as? [[String: Any]]
+        else {
+            throw XPCError.connectionFailed
+        }
+        let names = cams.compactMap { $0["name"] as? String }
+        await BlinkCameraCache.shared.set(names: names)
+    }
+
     func connect() async throws {
         status = .connecting
-        // First-run: create venv + install blinkpy in Application Support.
+
+        // Use cached camera list for the entire session — avoids re-auth
+        // on health polling reconnects which would trigger MFA again.
+        if let cached = await BlinkCameraCache.shared.get() {
+            guard cached.names.contains(blinkCameraName) else {
+                status = .degraded("camera '\(blinkCameraName)' not found in Blink account")
+                throw XPCError.cameraNotFound
+            }
+            status = .online
+            return
+        }
+
+        // Fallback: full auth (only reached if prefetch wasn't called).
         try await ensureVenv()
-        let data = try await runHelper(["cameras"])
+        let data = try await Self.helperCommand(["cameras"])
         guard
             let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
             let cams = obj["cameras"] as? [[String: Any]]
@@ -91,6 +124,7 @@ actor BlinkBridgeAdapter: CameraAdapter {
             throw XPCError.connectionFailed
         }
         let names = cams.compactMap { $0["name"] as? String }
+        await BlinkCameraCache.shared.set(names: names)
         guard names.contains(blinkCameraName) else {
             status = .degraded("camera '\(blinkCameraName)' not found in Blink account")
             throw XPCError.cameraNotFound
@@ -194,7 +228,8 @@ actor BlinkBridgeAdapter: CameraAdapter {
 
     /// Static entry-point so SentinelCoreService can run auth commands
     /// (which are account-wide, not per-camera) using the same venv + helper paths.
-    static func helperCommand(_ args: [String]) async throws -> Data {
+    /// Pass `stdinData` to pipe credentials via stdin instead of CLI args.
+    static func helperCommand(_ args: [String], stdinData: Data? = nil) async throws -> Data {
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Data, Error>) in
             DispatchQueue.global(qos: .utility).async {
                 let proc = Process()
@@ -205,6 +240,12 @@ actor BlinkBridgeAdapter: CameraAdapter {
                 let outPipe = Pipe()
                 proc.standardOutput = outPipe
                 proc.standardError  = Pipe()
+                if let input = stdinData {
+                    let inPipe = Pipe()
+                    proc.standardInput = inPipe
+                    inPipe.fileHandleForWriting.write(input)
+                    inPipe.fileHandleForWriting.closeFile()
+                }
                 do {
                     try proc.run()
                 } catch {
@@ -241,5 +282,29 @@ actor BlinkBridgeAdapter: CameraAdapter {
                 }
             }
         }
+    }
+}
+
+// MARK: - Blink Camera Cache (concurrency-safe shared state)
+
+actor BlinkCameraCache {
+    static let shared = BlinkCameraCache()
+
+    private var names: [String] = []
+    private var timestamp: Date = .distantPast
+
+    struct CacheEntry: Sendable {
+        let names: [String]
+        let age: TimeInterval
+    }
+
+    func set(names: [String]) {
+        self.names = names
+        self.timestamp = Date()
+    }
+
+    func get() -> CacheEntry? {
+        guard !names.isEmpty else { return nil }
+        return CacheEntry(names: names, age: Date().timeIntervalSince(timestamp))
     }
 }

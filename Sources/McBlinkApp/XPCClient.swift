@@ -21,6 +21,8 @@ final class XPCClient {
 
     // MARK: - State
 
+    // nonisolated(unsafe) is required because deinit is nonisolated in Swift 6
+    // but NSXPCConnection.invalidate() is thread-safe and must be called there.
     nonisolated(unsafe) private var connection: NSXPCConnection?
     private var reconnectTask: Task<Void, Never>?
     private var reconnectDelay: TimeInterval = 1.0
@@ -64,9 +66,24 @@ final class XPCClient {
 
         conn.resume()
         connection = conn
-        isConnected = true
         reconnectDelay = 1.0
-        onConnectionStateChanged?(true)
+        // Validate the connection with a lightweight XPC call before
+        // reporting connected. conn.resume() alone doesn't guarantee
+        // the remote service is reachable.
+        let weakSelf = self
+        let proxy = conn.remoteObjectProxyWithErrorHandler { @Sendable _ in
+            Task { @MainActor in
+                weakSelf.handleInvalidation()
+            }
+        }
+        if let p = proxy as? any McBlinkXPCProtocol {
+            p.getCameras { @Sendable _ in
+                Task { @MainActor in
+                    weakSelf.isConnected = true
+                    weakSelf.onConnectionStateChanged?(true)
+                }
+            }
+        }
     }
 
     private func handleInvalidation() {
@@ -316,6 +333,54 @@ final class XPCClient {
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
             p.switchSiteProfile(id.uuidString) { success, _ in
                 if success { cont.resume() } else { cont.resume(throwing: XPCError.cameraNotFound) }
+            }
+        }
+    }
+
+    // MARK: - Settings
+
+    func updateSettings(_ settings: AppSettings) async throws {
+        let p = try proxyWithErrorHandler()
+        let data = try JSONEncoder().encode(settings)
+        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+            p.updateSettings(data) { success in
+                if success { cont.resume() } else { cont.resume(throwing: XPCError.connectionFailed) }
+            }
+        }
+    }
+
+    func getSettings() async throws -> AppSettings {
+        let p = try proxyWithErrorHandler()
+        return try await withCheckedThrowingContinuation { continuation in
+            p.getSettings { data in
+                do {
+                    let settings = try JSONDecoder().decode(AppSettings.self, from: data)
+                    continuation.resume(returning: settings)
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    // MARK: - Credentials
+
+    func storeCameraCredential(_ cameraID: UUID, password: String) async throws {
+        let p = try proxyWithErrorHandler()
+        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+            p.storeCameraCredential(cameraID.uuidString, password: password) { success in
+                if success { cont.resume() } else { cont.resume(throwing: XPCError.connectionFailed) }
+            }
+        }
+    }
+
+    // MARK: - ESP32-CAM controls
+
+    func esp32SetFlash(_ cameraID: UUID, on: Bool) async throws {
+        let p = try proxyWithErrorHandler()
+        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+            p.esp32SetFlash(cameraID.uuidString, on: on) { success in
+                if success { cont.resume() } else { cont.resume(throwing: XPCError.connectionFailed) }
             }
         }
     }

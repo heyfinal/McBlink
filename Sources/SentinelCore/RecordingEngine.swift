@@ -102,13 +102,17 @@ actor RecordingEngine {
 
     /// Writes `clipData` to a temp file, encrypts it, records a ClipRecord in the DB,
     /// and returns the new ClipRecord's UUID.
+    /// When `keepTempFile` is true, the plaintext temp file at
+    /// `<tempDir>/<clipID>.mp4` is preserved for post-encryption analysis (e.g. AI pipeline).
+    /// The caller is responsible for deleting it.
     @discardableResult
     func startMotionTriggeredRecording(
         for cameraID: UUID,
         clipData: Data,
         encryptedBasePath: String,
         encryptionManager: EncryptionManager,
-        db: DatabaseManager
+        db: DatabaseManager,
+        keepTempFile: Bool = false
     ) async throws -> UUID {
         let clipID = UUID()
         let now = Date()
@@ -133,8 +137,9 @@ actor RecordingEngine {
             throw error
         }
 
-        // Remove plaintext temp file immediately.
-        try? FileManager.default.removeItem(at: tempPath)
+        if !keepTempFile {
+            try? FileManager.default.removeItem(at: tempPath)
+        }
 
         // Measure the encrypted file size.
         let encryptedSize: Int64 = (try? FileManager.default.attributesOfItem(
@@ -161,6 +166,7 @@ actor RecordingEngine {
     // MARK: - Blink Clip Handler
 
     /// Called by BlinkAdapter when a clip download completes.
+    /// Keeps the temp file for AI analysis; caller cleans it up.
     @discardableResult
     func onClipDownloaded(
         cameraID: UUID,
@@ -175,7 +181,8 @@ actor RecordingEngine {
             clipData: clipData,
             encryptedBasePath: basePath,
             encryptionManager: encryptionManager,
-            db: db
+            db: db,
+            keepTempFile: true
         )
     }
 

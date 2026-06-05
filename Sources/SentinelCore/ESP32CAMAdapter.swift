@@ -29,6 +29,8 @@ actor ESP32CAMAdapter: CameraAdapter {
 
     private let profile: CameraProfile
     private let baseURL: URL
+    /// Bearer token for API_TOKEN-protected firmware. Read from profile.username.
+    private let bearerToken: String?
     private var motionPollingTask: Task<Void, Never>?
     private var onClipAvailable: (@Sendable (Data, URL) async -> Void)?
 
@@ -51,6 +53,18 @@ actor ESP32CAMAdapter: CameraAdapter {
         } else {
             self.baseURL = URL(string: "http://invalid")!
         }
+        // Use the profile's username field as bearer token (if set).
+        self.bearerToken = profile.username?.isEmpty == false ? profile.username : nil
+    }
+
+    /// Builds a URLRequest with the bearer token attached (if configured).
+    private func authedRequest(url: URL, timeout: TimeInterval = ESP32CAMAdapter.timeout) -> URLRequest {
+        var req = URLRequest(url: url, timeoutInterval: timeout)
+        req.setValue("McBlink/1.0 (macOS)", forHTTPHeaderField: "User-Agent")
+        if let token = bearerToken {
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        return req
     }
 
     // MARK: - CameraAdapter
@@ -58,8 +72,7 @@ actor ESP32CAMAdapter: CameraAdapter {
     func connect() async throws {
         status = .connecting
         let url = baseURL.appendingPathComponent("status")
-        var req = URLRequest(url: url, timeoutInterval: Self.timeout)
-        req.httpMethod = "GET"
+        let req = authedRequest(url: url)
         do {
             let (_, resp) = try await URLSession.shared.data(for: req)
             let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
@@ -94,8 +107,7 @@ actor ESP32CAMAdapter: CameraAdapter {
     /// Hits /capture directly — one JPEG round-trip, no MJPEG parsing needed.
     func latestSnapshot() async throws -> CGImage {
         let url = baseURL.appendingPathComponent("capture")
-        var req = URLRequest(url: url, timeoutInterval: Self.timeout)
-        req.setValue("McBlink/1.0 (macOS)", forHTTPHeaderField: "User-Agent")
+        let req = authedRequest(url: url)
         let (data, resp) = try await URLSession.shared.data(for: req)
         guard (resp as? HTTPURLResponse)?.statusCode == 200 else {
             throw URLError(.badServerResponse)
@@ -151,7 +163,8 @@ actor ESP32CAMAdapter: CameraAdapter {
             URLQueryItem(name: "val", value: "\(val)")
         ]
         guard let url = comps.url else { throw URLError(.badURL) }
-        let (_, resp) = try await URLSession.shared.data(from: url)
+        let req = authedRequest(url: url)
+        let (_, resp) = try await URLSession.shared.data(for: req)
         guard (resp as? HTTPURLResponse)?.statusCode == 200 else {
             throw URLError(.badServerResponse)
         }
@@ -168,9 +181,8 @@ actor ESP32CAMAdapter: CameraAdapter {
     }
 
     private func pollMotionFlag() async {
-        guard let (data, _) = try? await URLSession.shared.data(
-            from: baseURL.appendingPathComponent("status")
-        ),
+        let statusReq = authedRequest(url: baseURL.appendingPathComponent("status"))
+        guard let (data, _) = try? await URLSession.shared.data(for: statusReq),
         let json   = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
         let motion = json["motion"] as? Bool,
         motion
@@ -185,7 +197,8 @@ actor ESP32CAMAdapter: CameraAdapter {
         // Capture a JPEG and route it into the recording pipeline (encrypt + catalog).
         guard let handler = onClipAvailable else { return }
         let captureURL = baseURL.appendingPathComponent("capture")
-        if let (jpeg, resp) = try? await URLSession.shared.data(from: captureURL),
+        let captureReq = authedRequest(url: captureURL)
+        if let (jpeg, resp) = try? await URLSession.shared.data(for: captureReq),
            (resp as? HTTPURLResponse)?.statusCode == 200, !jpeg.isEmpty {
             await handler(jpeg, captureURL)
         }

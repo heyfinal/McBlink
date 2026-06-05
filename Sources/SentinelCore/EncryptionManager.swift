@@ -10,10 +10,14 @@ import Security
 
 actor EncryptionManager {
 
-    // MARK: - Keychain constants
+    // MARK: - Key file path
 
-    private static let keychainService = "com.heyfinal.mcblink.clipkey"
-    private static let keychainAccount = "sentinelcore"
+    private static let keyFileName = ".clipkey"
+
+    private static var keyFileURL: URL {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        return base.appendingPathComponent("McBlink/db/\(keyFileName)")
+    }
 
     // MARK: - Cached key (loaded once per process lifetime)
 
@@ -28,19 +32,19 @@ actor EncryptionManager {
 
     // MARK: - Key management
 
-    /// Loads the master key from the Keychain. Generates and stores a new
-    /// 256-bit key if none exists yet.
+    /// Loads the master key from a protected file. Generates and stores a new
+    /// 256-bit key if none exists yet. No Keychain access — avoids ad-hoc
+    /// signing prompts on every rebuild.
     func generateKeyIfNeeded() throws {
         if cachedKey != nil { return }
 
-        if let existing = try loadKeyFromKeychain() {
+        if let existing = try loadKeyFromFile() {
             cachedKey = existing
             return
         }
 
-        // Generate a new random 256-bit key.
         let newKey = SymmetricKey(size: .bits256)
-        try storeKeyInKeychain(newKey)
+        try storeKeyInFile(newKey)
         cachedKey = newKey
     }
 
@@ -110,55 +114,31 @@ actor EncryptionManager {
         return Data(bytes)
     }
 
-    // MARK: - Keychain
+    // MARK: - File-based key storage
 
-    private func loadKeyFromKeychain() throws -> SymmetricKey? {
-        let query: [CFString: Any] = [
-            kSecClass:            kSecClassGenericPassword,
-            kSecAttrService:      Self.keychainService,
-            kSecAttrAccount:      Self.keychainAccount,
-            kSecReturnData:       kCFBooleanTrue!,
-            kSecMatchLimit:       kSecMatchLimitOne
-        ]
-        var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-
-        switch status {
-        case errSecSuccess:
-            guard let data = result as? Data, data.count == 32 else {
-                throw EncryptionError.malformedKey
-            }
-            return SymmetricKey(data: data)
-        case errSecItemNotFound:
-            return nil
-        default:
-            throw EncryptionError.keychainError(status)
+    private func loadKeyFromFile() throws -> SymmetricKey? {
+        let url = Self.keyFileURL
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        let data = try Data(contentsOf: url)
+        guard data.count == 32 else {
+            throw EncryptionError.malformedKey
         }
+        return SymmetricKey(data: data)
     }
 
-    private func storeKeyInKeychain(_ key: SymmetricKey) throws {
+    private func storeKeyInFile(_ key: SymmetricKey) throws {
+        let url = Self.keyFileURL
+        let dir = url.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+
         let keyData = key.withUnsafeBytes { Data($0) }
+        try keyData.write(to: url, options: [.atomic, .completeFileProtection])
 
-        // Delete any stale entry first.
-        let deleteQuery: [CFString: Any] = [
-            kSecClass:       kSecClassGenericPassword,
-            kSecAttrService: Self.keychainService,
-            kSecAttrAccount: Self.keychainAccount
-        ]
-        SecItemDelete(deleteQuery as CFDictionary)
-
-        let addQuery: [CFString: Any] = [
-            kSecClass:                      kSecClassGenericPassword,
-            kSecAttrService:                Self.keychainService,
-            kSecAttrAccount:                Self.keychainAccount,
-            kSecValueData:                  keyData,
-            kSecAttrAccessible:             kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
-            kSecAttrIsPermanent:            kCFBooleanTrue!
-        ]
-        let status = SecItemAdd(addQuery as CFDictionary, nil)
-        guard status == errSecSuccess else {
-            throw EncryptionError.keychainError(status)
-        }
+        // Owner-only read/write (0600).
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o600],
+            ofItemAtPath: url.path
+        )
     }
 }
 

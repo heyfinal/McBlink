@@ -57,6 +57,14 @@ struct TimelineView: View {
         .onAppear {
             selectedCameraID = initialCameraID ?? appState.cameras.first?.id
         }
+        .alert("Export Error", isPresented: Binding(
+            get: { exportError != nil },
+            set: { if !$0 { exportError = nil } }
+        )) {
+            Button("OK") { exportError = nil }
+        } message: {
+            Text(exportError ?? "")
+        }
     }
 
     // MARK: - Top controls
@@ -201,11 +209,26 @@ struct TimelineView: View {
     // MARK: - Clip actions
 
     private func openClip(_ clip: ClipRecord) {
-        // SentinelCore decrypts to a temp path; we play from there.
-        // For now show the encrypted path's parent URL as a placeholder.
-        let url = URL(fileURLWithPath: clip.encryptedPath)
-        player = AVPlayer(url: url)
-        player?.play()
+        // Decrypt the clip to ~/Downloads/mcblink-playback/ (in the safe export path list).
+        // Clean up previous decrypted files to avoid accumulating plaintext on disk.
+        let tmpDir = NSHomeDirectory() + "/Downloads/mcblink-playback"
+        try? FileManager.default.createDirectory(atPath: tmpDir, withIntermediateDirectories: true)
+        if let existing = try? FileManager.default.contentsOfDirectory(atPath: tmpDir) {
+            for file in existing where file.hasSuffix(".mp4") {
+                try? FileManager.default.removeItem(atPath: tmpDir + "/" + file)
+            }
+        }
+        let tmpPath = tmpDir + "/\(clip.id.uuidString).mp4"
+        Task {
+            do {
+                try await appState.xpcClient.exportClip(clip.id, toPath: tmpPath)
+                let url = URL(fileURLWithPath: tmpPath)
+                player = AVPlayer(url: url)
+                player?.play()
+            } catch {
+                exportError = "Playback failed: \(error.localizedDescription)"
+            }
+        }
     }
 
     private func exportClip(_ clip: ClipRecord) {

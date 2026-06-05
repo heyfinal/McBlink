@@ -19,8 +19,12 @@ actor CameraManager {
     private let recordingEngine: RecordingEngine
     private let encryptionManager: EncryptionManager
     private let db: DatabaseManager
+    private let ai: AIDetectionPipeline
+    private let alerts: AlertManager
 
     private var healthPollingTask: Task<Void, Never>?
+    private var pollCycleCount: Int = 0
+    private var offlineSince: [UUID: Date] = [:]
 
     // MARK: Init
 
@@ -28,12 +32,16 @@ actor CameraManager {
         healthCollector: HealthCollector,
         recordingEngine: RecordingEngine,
         encryptionManager: EncryptionManager,
-        db: DatabaseManager
+        db: DatabaseManager,
+        ai: AIDetectionPipeline,
+        alerts: AlertManager
     ) {
         self.healthCollector = healthCollector
         self.recordingEngine = recordingEngine
         self.encryptionManager = encryptionManager
         self.db = db
+        self.ai = ai
+        self.alerts = alerts
     }
 
     // MARK: Registration
@@ -61,13 +69,19 @@ actor CameraManager {
         }
     }
 
-    /// Builds a Sendable clip handler that encrypts + catalogs incoming media for
-    /// `profile`, resolving its storage path (owning site profile, else app-support).
+    /// Builds a Sendable clip handler that runs AI analysis on the plaintext clip,
+    /// encrypts + catalogs incoming media for `profile`, fires filtered detection alerts,
+    /// and records health events.
     private func makeClipHandler(for profile: CameraProfile) async -> @Sendable (Data, URL) async -> Void {
         let engine = recordingEngine
         let enc = encryptionManager
         let database = db
+        let aiPipeline = ai
+        let alertMgr = alerts
+        let healthCol = healthCollector
         let camID = profile.id
+        let camName = profile.name
+        let zones = profile.detectionZones
         let basePath: String
         if let site = try? await db.fetchSiteProfile(id: profile.siteProfileID) {
             basePath = site.storageBasePath
@@ -77,10 +91,31 @@ actor CameraManager {
         try? FileManager.default.createDirectory(atPath: basePath, withIntermediateDirectories: true)
         return { data, sourceURL in
             do {
-                try await engine.onClipDownloaded(
+                let clipID = try await engine.onClipDownloaded(
                     cameraID: camID, clipData: data, sourceURL: sourceURL,
                     basePath: basePath, encryptionManager: enc, db: database
                 )
+
+                // AI analysis on the plaintext temp file kept by RecordingEngine.
+                let tempPath = FileManager.default.temporaryDirectory
+                    .appending(path: "\(clipID.uuidString).mp4")
+                defer { try? FileManager.default.removeItem(at: tempPath) }
+                if FileManager.default.fileExists(atPath: tempPath.path) {
+                    let event = try await aiPipeline.analyzeClip(
+                        at: tempPath, cameraID: camID, clipID: clipID, zones: zones)
+                    if !event.detectedClasses.isEmpty {
+                        try? await database.upsertDetectionEvent(event)
+                        await healthCol.recordEvent(cameraID: camID, at: event.timestamp)
+                        // Check notification filters before alerting
+                        let settings = (try? await database.fetchSettings()) ?? AppSettings()
+                        let enabledClasses = event.detectedClasses.filter {
+                            settings.isNotificationEnabled(for: $0)
+                        }
+                        if !enabledClasses.isEmpty {
+                            await alertMgr.sendDetectionAlert(event: event, cameraName: camName)
+                        }
+                    }
+                }
             } catch {
                 print("[CameraManager] clip ingest failed for \(camID): \(error)")
             }
@@ -131,6 +166,11 @@ actor CameraManager {
 
     // MARK: Stream / Snapshot Passthrough
 
+    func esp32SetFlash(_ id: UUID, on: Bool) async throws {
+        guard let adapter = adapters[id] as? ESP32CAMAdapter else { throw XPCError.cameraNotFound }
+        try await adapter.setFlash(on)
+    }
+
     func latestSnapshot(for id: UUID) async throws -> CGImage {
         guard let adapter = adapters[id] else { throw XPCError.cameraNotFound }
         return try await adapter.latestSnapshot()
@@ -176,25 +216,68 @@ actor CameraManager {
         }
     }
 
-    /// Queries every registered adapter's status and publishes a HealthReport.
+    /// Queries every registered adapter's status, attempts reconnection for
+    /// offline cameras, publishes HealthReports, fires offline alerts after 60s,
+    /// and periodically refreshes storage metrics.
     private func pollAllAdapters() async {
-        // Snapshot current adapter map to avoid holding the actor lock across awaits.
+        pollCycleCount += 1
         let snapshot = adapters
+        let profileSnapshot = profiles
         await withTaskGroup(of: (UUID, CameraStatus)?.self) { group in
             for (id, adapter) in snapshot {
                 group.addTask {
                     let status = await adapter.status
+                    // Attempt reconnection for offline cameras.
+                    if case .offline = status, let profile = profileSnapshot[id] {
+                        do {
+                            try await adapter.connect()
+                            NSLog("[McBlink] reconnected camera '%@'", profile.name)
+                            return (id, await adapter.status)
+                        } catch {
+                            return (id, CameraStatus.offline)
+                        }
+                    }
                     return (id, status)
                 }
             }
             for await result in group {
                 guard let (id, status) = result else { continue }
+
+                // Track offline duration and fire alert after 60s
+                if case .offline = status {
+                    if offlineSince[id] == nil {
+                        offlineSince[id] = Date()
+                    } else if let since = offlineSince[id],
+                              Date().timeIntervalSince(since) >= 60 {
+                        let name = profileSnapshot[id]?.name ?? "Unknown"
+                        await alerts.sendCameraOfflineAlert(cameraID: id, cameraName: name)
+                        // Reset so we don't spam — next alert after another 60s gap
+                        offlineSince[id] = Date()
+                    }
+                } else {
+                    offlineSince.removeValue(forKey: id)
+                }
+
+                // FPS is 0 for snapshot-based adapters (ESP32, Blink) — accurate, not a bug.
                 await healthCollector.update(
                     cameraID: id,
                     status: status,
                     fps: 0,
                     dropped: 0
                 )
+            }
+        }
+
+        // Every 10 poll cycles (~5 min at 30s interval), refresh storage metrics
+        if pollCycleCount % 10 == 0 {
+            for (id, profile) in profileSnapshot {
+                let basePath: String
+                if let site = try? await db.fetchSiteProfile(id: profile.siteProfileID) {
+                    basePath = site.storageBasePath
+                } else {
+                    basePath = Self.defaultClipsBasePath(for: id)
+                }
+                await healthCollector.refreshStorageUsed(cameraID: id, basePath: basePath)
             }
         }
     }

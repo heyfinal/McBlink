@@ -59,9 +59,11 @@ struct McBlinkApp: App {
                 ContentView()
                     .environmentObject(appState)
                     .task {
+                        await appState.loadSettings()
                         await appState.loadCameras()
                         await appState.loadSiteProfiles()
                         await appState.refreshHealth()
+                        await appState.refreshRecentEvents()
                     }
             } else {
                 LocalAuthView {

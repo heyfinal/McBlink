@@ -54,13 +54,18 @@ struct CameraProfile: Codable, Sendable, Identifiable {
     var streamURL: String
     var substreamURL: String?
     var username: String?
-    /// Never stored as plaintext — this field is a marker/placeholder only.
-    /// Actual credentials are stored in the macOS Keychain keyed by camera ID.
-    var password: String
     var capabilities: CameraCapabilities
     var detectionZones: [DetectionZone]
     var isArmed: Bool
     var siteProfileID: UUID
+
+    // Excluded from Codable — credentials belong in Keychain, not JSON blobs.
+    var password: String = ""
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, source, streamURL, substreamURL, username,
+             capabilities, detectionZones, isArmed, siteProfileID
+    }
 
     init(
         id: UUID = UUID(),
@@ -293,6 +298,46 @@ extension HealthReport: Codable {
         default:
             let detail = (try? c.decode(String.self, forKey: .statusDetail)) ?? kind
             status = .degraded(detail)
+        }
+    }
+}
+
+// MARK: - App Settings (cross-process via XPC)
+
+struct AppSettings: Codable, Sendable {
+    // Notification filters
+    var notifyPerson: Bool = true
+    var notifyVehicle: Bool = true
+    var notifyAnimal: Bool = false
+    var notifyPackage: Bool = true
+    var notifyGlassBreak: Bool = true
+    var notifySmokeAlarm: Bool = true
+    var notifyBark: Bool = false
+
+    // Quiet hours — seconds from midnight (matches DatePicker binding)
+    var quietHoursStart: Double = 23 * 3600
+    var quietHoursEnd: Double = 6 * 3600
+
+    // MQTT config (unified key names)
+    var mqttHost: String = ""
+    var mqttPort: Int = 1883
+    var mqttTopicPrefix: String = "homeassistant/mcblink"
+
+    // Storage config
+    var retentionDays: Int = 30
+    var maxDiskGB: Int = 500
+
+    /// Returns true if the given detection class has notifications enabled.
+    func isNotificationEnabled(for cls: DetectionClass) -> Bool {
+        switch cls {
+        case .person:     return notifyPerson
+        case .vehicle:    return notifyVehicle
+        case .animal:     return notifyAnimal
+        case .package:    return notifyPackage
+        case .bicycle:    return notifyVehicle
+        case .glassBreak: return notifyGlassBreak
+        case .smokeAlarm: return notifySmokeAlarm
+        case .bark:       return notifyBark
         }
     }
 }

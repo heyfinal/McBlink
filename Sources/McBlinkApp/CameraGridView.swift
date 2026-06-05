@@ -28,7 +28,7 @@ struct CameraGridView: View {
 
     @State private var snapshots: [UUID: NSImage] = [:]
     @State private var expandedCameraID: UUID? = nil
-    @State private var refreshTimer: Timer? = nil
+    @State private var pollTask: Task<Void, Never>? = nil
 
     private var layout: GridLayout {
         GridLayout(rawValue: layoutRaw) ?? .two
@@ -59,11 +59,11 @@ struct CameraGridView: View {
         .navigationTitle("Camera Grid")
         .task {
             await refreshAllSnapshots()
-            startTimer()
+            startPolling()
         }
         .onDisappear {
-            refreshTimer?.invalidate()
-            refreshTimer = nil
+            pollTask?.cancel()
+            pollTask = nil
         }
         .sheet(item: Binding(
             get: { expandedCameraID.flatMap { appState.camera(id: $0) } },
@@ -112,7 +112,8 @@ struct CameraGridView: View {
                     CameraCell(
                         camera: camera,
                         snapshot: snapshots[camera.id],
-                        recentEvents: appState.recentEvents(for: camera.id, within: 60)
+                        recentEvents: appState.recentEvents(for: camera.id, within: 60),
+                        healthReport: appState.healthReport(for: camera.id)
                     ) {
                         expandedCameraID = camera.id
                     }
@@ -156,10 +157,14 @@ struct CameraGridView: View {
         return NSImage(data: data)
     }
 
-    private func startTimer() {
-        refreshTimer?.invalidate()
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { _ in
-            Task { await refreshAllSnapshots() }
+    private func startPolling() {
+        pollTask?.cancel()
+        pollTask = Task { @MainActor in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 10_000_000_000)
+                guard !Task.isCancelled else { break }
+                await refreshAllSnapshots()
+            }
         }
     }
 }
@@ -171,6 +176,7 @@ private struct CameraCell: View {
     let camera: CameraProfile
     let snapshot: NSImage?
     let recentEvents: [DetectionEvent]
+    let healthReport: HealthReport?
     let onTap: () -> Void
 
     var body: some View {
@@ -269,10 +275,12 @@ private struct CameraCell: View {
     }
 
     private var statusColor: Color {
-        // Without live XPC health data in the cell itself, fall back to green/offline.
-        // AppState.healthReports is accessible via the environment, but CameraCell
-        // is a private struct — pass status in from the parent if needed.
-        // For now, green = armed, gray = disarmed.
-        camera.isArmed ? .green : .gray
+        guard let report = healthReport else { return .gray }
+        switch report.status {
+        case .online:    return .green
+        case .offline:   return .red
+        case .degraded:  return .orange
+        case .connecting: return .yellow
+        }
     }
 }

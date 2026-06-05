@@ -19,6 +19,7 @@ struct CameraDetailView: View {
     @State private var errorMessage: String? = nil
     @State private var isTogglingArm: Bool = false
     @State private var pollTask: Task<Void, Never>? = nil
+    @State private var flashOn: Bool = false
 
     /// Cached-thumbnail poll interval. 2s feels live during motion (Blink updates
     /// the cloud thumbnail every ~1-2s while a clip is recording) without waking
@@ -166,6 +167,18 @@ struct CameraDetailView: View {
             }
             .buttonStyle(.bordered)
 
+            // Flash toggle — only shown for ESP32-CAM
+            if camera.source == .esp32cam {
+                Button {
+                    Task { await toggleFlash() }
+                } label: {
+                    Label(flashOn ? "Flash Off" : "Flash On",
+                          systemImage: flashOn ? "flashlight.on.fill" : "flashlight.off.fill")
+                }
+                .buttonStyle(.bordered)
+                .tint(flashOn ? .yellow : .primary)
+            }
+
             Spacer()
 
             if let err = errorMessage {
@@ -256,6 +269,16 @@ struct CameraDetailView: View {
             await appState.armCamera(camera.id)
         }
         if let err = appState.lastError { errorMessage = err }
+    }
+
+    private func toggleFlash() async {
+        let next = !flashOn
+        do {
+            try await appState.xpcClient.esp32SetFlash(camera.id, on: next)
+            flashOn = next
+        } catch {
+            errorMessage = "Flash control failed"
+        }
     }
 }
 

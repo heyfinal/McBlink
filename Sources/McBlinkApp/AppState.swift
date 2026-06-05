@@ -15,6 +15,8 @@ final class AppState: ObservableObject {
     @Published var activeSiteProfileID: UUID?
     @Published var healthReports: [UUID: HealthReport] = [:]
     @Published var recentEvents: [DetectionEvent] = []
+    @Published var settings: AppSettings = AppSettings()
+    private var settingsSaveTask: Task<Void, Never>?
     @Published var isLockedDown: Bool = false
     @Published var xpcConnected: Bool = false
     @Published var lastError: String?
@@ -127,7 +129,13 @@ final class AppState: ObservableObject {
 
     func refreshHealth() async {
         do {
-            let reports = try await xpcClient.getAllHealthReports()
+            var reports = try await xpcClient.getAllHealthReports()
+            // On startup, SentinelCore's health poll may not have completed yet.
+            // Retry once after a short delay if we got no reports but have cameras.
+            if reports.isEmpty && !cameras.isEmpty {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                reports = try await xpcClient.getAllHealthReports()
+            }
             var map: [UUID: HealthReport] = [:]
             for report in reports {
                 map[report.cameraID] = report
@@ -145,6 +153,32 @@ final class AppState: ObservableObject {
             recentEvents = try await xpcClient.getRecentEvents(cameraID, limit: 100)
         } catch {
             lastError = error.localizedDescription
+        }
+    }
+
+    // MARK: - Settings
+
+    func loadSettings() async {
+        do {
+            settings = try await xpcClient.getSettings()
+        } catch {
+            NSLog("[McBlink] loadSettings error: %@", String(describing: error))
+        }
+    }
+
+    func saveSettings(_ newSettings: AppSettings) {
+        settings = newSettings
+        // Debounce XPC writes — coalesce rapid changes (sliders, typing) into
+        // a single write after 0.5s of inactivity.
+        settingsSaveTask?.cancel()
+        settingsSaveTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            guard !Task.isCancelled, let self else { return }
+            do {
+                try await self.xpcClient.updateSettings(self.settings)
+            } catch {
+                self.lastError = error.localizedDescription
+            }
         }
     }
 

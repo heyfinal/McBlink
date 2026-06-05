@@ -33,8 +33,11 @@
 #include <WebServer.h>
 
 // ── CONFIGURE: copy wifi_secrets.h.example -> wifi_secrets.h and fill it in ───
-#include "wifi_secrets.h"     // defines WIFI_SSID and WIFI_PASS (gitignored)
+#include "wifi_secrets.h"     // defines WIFI_SSID, WIFI_PASS, and optionally API_TOKEN (gitignored)
 #define DEVICE_NAME  "garage-cam"
+#ifndef API_TOKEN
+#define API_TOKEN ""            // empty = no auth required (define in wifi_secrets.h to enable)
+#endif
 // ─────────────────────────────────────────────────────────────────────────────
 
 // AI-Thinker ESP32-CAM GPIO map
@@ -82,9 +85,20 @@ static uint8_t          g_ap_channel     = 0;
 static bool             g_staAssociated  = false;
 static volatile bool    g_needReconnect  = false;
 
+static uint32_t         gotIPAtMs        = 0;
+
 // ─── Camera init ─────────────────────────────────────────────────────────────
 
 static bool initCamera() {
+    // Deint first so repeated soft-resets start clean.
+    esp_camera_deinit();
+    // Cycle PWDN to force the OV2640 into a known-off state before init.
+    pinMode(PWDN_GPIO_NUM, OUTPUT);
+    digitalWrite(PWDN_GPIO_NUM, HIGH);
+    delay(100);
+    digitalWrite(PWDN_GPIO_NUM, LOW);
+    delay(100);
+
     camera_config_t cfg = {};
     cfg.ledc_channel = LEDC_CHANNEL_0;
     cfg.ledc_timer   = LEDC_TIMER_0;
@@ -162,15 +176,33 @@ static void checkMotion(camera_fb_t* fb) {
     memcpy(prevGrid, grid, MOTION_GRID_N);
 }
 
+// ─── Auth check ─────────────────────────────────────────────────────────────
+
+// Returns true if the request is authorized. When API_TOKEN is non-empty,
+// requires "Authorization: Bearer <token>" header on every request.
+static bool checkAuth() {
+    if (strlen(API_TOKEN) == 0) return true;  // auth disabled
+    if (!server.hasHeader("Authorization")) {
+        server.send(401, "application/json", "{\"error\":\"unauthorized\"}");
+        return false;
+    }
+    String auth = server.header("Authorization");
+    if (auth != String("Bearer ") + API_TOKEN) {
+        server.send(403, "application/json", "{\"error\":\"forbidden\"}");
+        return false;
+    }
+    return true;
+}
+
 // ─── HTTP handlers ───────────────────────────────────────────────────────────
 
 static void handleStream() {
+    if (!checkAuth()) return;
     WiFiClient client = server.client();
     client.print(
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: multipart/x-mixed-replace; boundary=frame\r\n"
         "Cache-Control: no-cache\r\n"
-        "Access-Control-Allow-Origin: *\r\n"
         "Connection: keep-alive\r\n\r\n"
     );
     while (client.connected()) {
@@ -188,15 +220,17 @@ static void handleStream() {
 }
 
 static void handleCapture() {
+    if (!checkAuth()) return;
     camera_fb_t* fb = esp_camera_fb_get();
     if (!fb) { server.send(503, "text/plain", "camera busy"); return; }
+    checkMotion(fb);  // update motion flag while frame is in hand — no extra grab needed
     server.sendHeader("Content-Disposition", "inline; filename=snapshot.jpg");
-    server.sendHeader("Access-Control-Allow-Origin", "*");
     server.send_P(200, "image/jpeg", (const char*)fb->buf, fb->len);
     esp_camera_fb_return(fb);
 }
 
 static void handleStatus() {
+    if (!checkAuth()) return;
     char json[256];
     snprintf(json, sizeof(json),
         "{\"device\":\"%s\",\"ip\":\"%s\",\"rssi\":%d,"
@@ -208,47 +242,72 @@ static void handleStatus() {
         motionFlag ? "true" : "false",
         millis() / 1000UL
     );
-    server.sendHeader("Access-Control-Allow-Origin", "*");
     server.send(200, "application/json", json);
 }
 
+// Allowed control variable names (whitelist) and their safe value ranges.
+struct ControlVar { const char* name; int minVal; int maxVal; };
+static const ControlVar allowedVars[] = {
+    {"flash",      0, 1},
+    {"framesize",  0, 13},     // QQVGA(0) through UXGA(13)
+    {"quality",    0, 63},
+    {"brightness", -2, 2},
+    {"contrast",   -2, 2},
+    {"saturation", -2, 2},
+    {"hmirror",    0, 1},
+    {"vflip",      0, 1},
+    {"aec2",       0, 1},
+    {"awb",        0, 1},
+};
+static const int NUM_CONTROLS = sizeof(allowedVars) / sizeof(allowedVars[0]);
+
 static void handleControl() {
+    if (!checkAuth()) return;
     if (!server.hasArg("var") || !server.hasArg("val")) {
-        server.send(400, "text/plain", "missing var or val");
+        server.send(400, "application/json", "{\"error\":\"missing var or val\"}");
         return;
     }
-    String var = server.arg("var");
-    int    val = server.arg("val").toInt();
+    String varName = server.arg("var");
+    int    val     = server.arg("val").toInt();
+
+    // Validate against whitelist
+    const ControlVar* found = nullptr;
+    for (int i = 0; i < NUM_CONTROLS; i++) {
+        if (varName == allowedVars[i].name) { found = &allowedVars[i]; break; }
+    }
+    if (!found) {
+        server.send(400, "application/json", "{\"error\":\"unknown var\"}");
+        return;
+    }
+    if (val < found->minVal || val > found->maxVal) {
+        server.send(400, "application/json", "{\"error\":\"val out of range\"}");
+        return;
+    }
+
     sensor_t* s = esp_camera_sensor_get();
 
-    if      (var == "flash"      )             setFlash(val != 0);
-    else if (var == "framesize"  && s) s->set_framesize(s,   (framesize_t)val);
-    else if (var == "quality"    && s) s->set_quality(s,     val);
-    else if (var == "brightness" && s) s->set_brightness(s,  val);
-    else if (var == "contrast"   && s) s->set_contrast(s,    val);
-    else if (var == "saturation" && s) s->set_saturation(s,  val);
-    else if (var == "hmirror"    && s) s->set_hmirror(s,     val);
-    else if (var == "vflip"      && s) s->set_vflip(s,       val);
-    else if (var == "aec2"       && s) s->set_aec2(s,        val);
-    else if (var == "awb"        && s) s->set_whitebal(s,    val);
+    if      (varName == "flash"      )             setFlash(val != 0);
+    else if (varName == "framesize"  && s) s->set_framesize(s,   (framesize_t)val);
+    else if (varName == "quality"    && s) s->set_quality(s,     val);
+    else if (varName == "brightness" && s) s->set_brightness(s,  val);
+    else if (varName == "contrast"   && s) s->set_contrast(s,    val);
+    else if (varName == "saturation" && s) s->set_saturation(s,  val);
+    else if (varName == "hmirror"    && s) s->set_hmirror(s,     val);
+    else if (varName == "vflip"      && s) s->set_vflip(s,       val);
+    else if (varName == "aec2"       && s) s->set_aec2(s,        val);
+    else if (varName == "awb"        && s) s->set_whitebal(s,    val);
 
-    server.send(200, "text/plain", "ok");
+    server.send(200, "application/json", "{\"status\":\"ok\"}");
 }
 
 // ─── WiFi helpers ────────────────────────────────────────────────────────────
 
 static void applyWifiConfig() {
     wifi_config_t cfg = {};
-    memcpy(cfg.sta.ssid,     WIFI_SSID, strlen(WIFI_SSID));
-    memcpy(cfg.sta.password, WIFI_PASS,  strlen(WIFI_PASS));
-    // "Yes" is a hidden SSID on AT&T BGW (2.4 + 5 GHz) — WPA2 Personal.
-    // Hidden SSIDs require ALL_CHANNEL_SCAN so the stack sends directed
-    // probe requests (with SSID filled) on every channel.  FAST_SCAN
-    // (the default) skips channels after the first candidate and often
-    // misses hidden APs entirely.
-    cfg.sta.scan_method        = WIFI_ALL_CHANNEL_SCAN;
+    strncpy((char*)cfg.sta.ssid,     WIFI_SSID, sizeof(cfg.sta.ssid)     - 1);
+    strncpy((char*)cfg.sta.password, WIFI_PASS,  sizeof(cfg.sta.password) - 1);
     cfg.sta.bssid_set          = false;
-    cfg.sta.channel            = 0;
+    cfg.sta.scan_method        = WIFI_ALL_CHANNEL_SCAN;
     cfg.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
     cfg.sta.pmf_cfg.capable    = true;
     cfg.sta.pmf_cfg.required   = false;
@@ -288,24 +347,11 @@ void setup() {
                       IPAddress(info.got_ip.ip_info.ip.addr).toString().c_str());
     }, ARDUINO_EVENT_WIFI_STA_GOT_IP);
 
-    // Broad scan to confirm radio health and log visible APs (including hidden).
-    {
-        delay(500);   // let radio stabilize after mode change
-        int n = WiFi.scanNetworks(false, true);   // blocking, include hidden
-        Serial.printf("[scan] %d APs visible:\n", n);
-        for (int i = 0; i < n; i++) {
-            String ssid  = WiFi.SSID(i);
-            uint8_t* bss = WiFi.BSSID(i);
-            Serial.printf("[scan]   ch=%2d rssi=%3d auth=%d  bssid=%02x:%02x:%02x:%02x:%02x:%02x  \"%s\"\n",
-                WiFi.channel(i), WiFi.RSSI(i), (int)WiFi.encryptionType(i),
-                bss[0], bss[1], bss[2], bss[3], bss[4], bss[5],
-                ssid.isEmpty() ? "<hidden>" : ssid.c_str());
-        }
-        WiFi.scanDelete();
-    }
-
-    // Apply config then connect.  Must be called before esp_wifi_connect();
-    // calling it after returns "sta is connecting" error.
+    // Clean state, then connect using applyWifiConfig so WIFI_ALL_CHANNEL_SCAN
+    // is active — WIFI_FAST_SCAN (WiFi.begin default) misses hidden SSIDs.
+    WiFi.disconnect(true, true);
+    delay(500);
+    Serial.printf("[wifi] target: \"%s\"\n", WIFI_SSID);
     applyWifiConfig();
     esp_wifi_connect();
 
@@ -317,6 +363,8 @@ void setup() {
         if (g_needReconnect && millis() - lastRetry > 3000) {
             g_needReconnect = false;
             lastRetry = millis();
+            esp_wifi_disconnect();  // cancel any in-progress attempt first
+            delay(100);
             esp_wifi_connect();
         }
         uint32_t limit = g_staAssociated ? 120000UL : 90000UL;
@@ -328,10 +376,14 @@ void setup() {
     Serial.println();
     Serial.printf("[wifi] IP: %s  RSSI: %d dBm\n",
         WiFi.localIP().toString().c_str(), WiFi.RSSI());
+
+    gotIPAtMs = millis();   // record time — loop() will start mDNS 2 s later
     Serial.printf("[http] http://%s/stream\n",   WiFi.localIP().toString().c_str());
     Serial.printf("[http] http://%s/capture\n",  WiFi.localIP().toString().c_str());
     Serial.printf("[http] http://%s/status\n",   WiFi.localIP().toString().c_str());
 
+    const char* hdrs[] = {"Authorization"};
+    server.collectHeaders(hdrs, 1);
     server.on("/stream",  HTTP_GET, handleStream);
     server.on("/capture", HTTP_GET, handleCapture);
     server.on("/status",  HTTP_GET, handleStatus);
@@ -341,15 +393,16 @@ void setup() {
 }
 
 void loop() {
-    server.handleClient();
-
-    static uint32_t lastCheck = 0;
-    if (millis() - lastCheck > 1000) {
-        lastCheck = millis();
-        camera_fb_t* fb = esp_camera_fb_get();
-        if (fb) {
-            checkMotion(fb);
-            esp_camera_fb_return(fb);
+    // Reconnect if WiFi dropped — setup() only handles initial connect.
+    if (g_needReconnect) {
+        static uint32_t lastReconnectMs = 0;
+        if (millis() - lastReconnectMs > 5000) {
+            g_needReconnect = false;
+            lastReconnectMs = millis();
+            esp_wifi_disconnect();
+            delay(100);
+            esp_wifi_connect();
         }
     }
+    server.handleClient();
 }

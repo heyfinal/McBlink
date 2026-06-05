@@ -71,6 +71,19 @@ import Foundation
     /// Switches the active site profile. Returns (success, errorMessage?).
     func switchSiteProfile(_ profileID: String, reply: @escaping (Bool, String?) -> Void)
 
+    // MARK: Settings
+
+    /// Pushes JSON-encoded AppSettings to SentinelCore. Returns success.
+    func updateSettings(_ data: Data, reply: @escaping (Bool) -> Void)
+
+    /// Returns JSON-encoded AppSettings from SentinelCore DB.
+    func getSettings(reply: @escaping (Data) -> Void)
+
+    // MARK: Credentials
+
+    /// Stores a camera password in a protected file. Returns success.
+    func storeCameraCredential(_ cameraID: String, password: String, reply: @escaping (Bool) -> Void)
+
     // MARK: Blink Auth
 
     /// Starts Blink account login. Returns JSON: {"status":"ok"|"needs_pin"|"error","message":"..."}.
@@ -80,6 +93,11 @@ import Foundation
     /// Completes Blink MFA login with the verification code sent by Blink.
     /// Returns JSON: {"status":"ok"|"error","message":"..."}.
     func blinkAuthPin(_ pin: String, reply: @escaping (Data) -> Void)
+
+    // MARK: ESP32-CAM controls
+
+    /// Toggles the onboard flash LED on an ESP32-CAM. Returns success.
+    func esp32SetFlash(_ cameraID: String, on: Bool, reply: @escaping (Bool) -> Void)
 }
 
 // MARK: - Interface Builder
@@ -145,6 +163,25 @@ enum McBlinkXPCInterface {
         )
         interface.setClasses(
             dataClasses as! Set<AnyHashable>,
+            for: #selector(McBlinkXPCProtocol.getSettings(reply:)),
+            argumentIndex: 0,
+            ofReply: true
+        )
+        // Input Data arguments
+        interface.setClasses(
+            dataClasses as! Set<AnyHashable>,
+            for: #selector(McBlinkXPCProtocol.updateSettings(_:reply:)),
+            argumentIndex: 0,
+            ofReply: false
+        )
+        interface.setClasses(
+            dataClasses as! Set<AnyHashable>,
+            for: #selector(McBlinkXPCProtocol.addCamera(_:reply:)),
+            argumentIndex: 0,
+            ofReply: false
+        )
+        interface.setClasses(
+            dataClasses as! Set<AnyHashable>,
             for: #selector(McBlinkXPCProtocol.blinkAuth(_:password:reply:)),
             argumentIndex: 0,
             ofReply: true
@@ -160,176 +197,3 @@ enum McBlinkXPCInterface {
     }
 }
 
-// MARK: - Client-side async wrappers
-
-/// Wraps the callback-based XPC protocol in Swift concurrency.
-/// Use from the app target only — never across the XPC boundary itself.
-extension McBlinkXPCProtocol {
-
-    func getCamerasAsync() async throws -> [CameraProfile] {
-        try await withCheckedThrowingContinuation { continuation in
-            getCameras { data in
-                do {
-                    let profiles = try JSONDecoder().decode([CameraProfile].self, from: data)
-                    continuation.resume(returning: profiles)
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-            }
-        }
-    }
-
-    func addCameraAsync(_ profile: CameraProfile) async throws {
-        let data = try JSONEncoder().encode(profile)
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            addCamera(data) { success, message in
-                if success {
-                    continuation.resume()
-                } else {
-                    continuation.resume(throwing: XPCError.cameraNotFound)
-                }
-            }
-        }
-    }
-
-    func removeCameraAsync(_ cameraID: UUID) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            removeCamera(cameraID.uuidString) { success in
-                if success {
-                    continuation.resume()
-                } else {
-                    continuation.resume(throwing: XPCError.cameraNotFound)
-                }
-            }
-        }
-    }
-
-    func armCameraAsync(_ cameraID: UUID) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            armCamera(cameraID.uuidString) { success, message in
-                if success {
-                    continuation.resume()
-                } else {
-                    continuation.resume(throwing: XPCError.recordingFailed)
-                }
-            }
-        }
-    }
-
-    func disarmCameraAsync(_ cameraID: UUID) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            disarmCamera(cameraID.uuidString) { success, message in
-                if success {
-                    continuation.resume()
-                } else {
-                    continuation.resume(throwing: XPCError.recordingFailed)
-                }
-            }
-        }
-    }
-
-    func getRecentEventsAsync(_ cameraID: UUID, limit: Int = 50) async throws -> [DetectionEvent] {
-        try await withCheckedThrowingContinuation { continuation in
-            getRecentEvents(cameraID.uuidString, limit: limit) { data in
-                do {
-                    let events = try JSONDecoder().decode([DetectionEvent].self, from: data)
-                    continuation.resume(returning: events)
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-            }
-        }
-    }
-
-    func getClipsAsync(_ cameraID: UUID, range: ClosedRange<Date>) async throws -> [ClipRecord] {
-        try await withCheckedThrowingContinuation { continuation in
-            getClips(
-                cameraID.uuidString,
-                startTime: range.lowerBound.timeIntervalSince1970,
-                endTime: range.upperBound.timeIntervalSince1970
-            ) { data in
-                do {
-                    let clips = try JSONDecoder().decode([ClipRecord].self, from: data)
-                    continuation.resume(returning: clips)
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-            }
-        }
-    }
-
-    func exportClipAsync(_ clipID: UUID, toPath: String) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            exportClip(clipID.uuidString, toPath: toPath) { success, message in
-                if success {
-                    continuation.resume()
-                } else {
-                    continuation.resume(throwing: XPCError.recordingFailed)
-                }
-            }
-        }
-    }
-
-    func getHealthReportAsync(_ cameraID: UUID) async throws -> HealthReport {
-        try await withCheckedThrowingContinuation { continuation in
-            getHealthReport(cameraID.uuidString) { data in
-                do {
-                    let report = try JSONDecoder().decode(HealthReport.self, from: data)
-                    continuation.resume(returning: report)
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-            }
-        }
-    }
-
-    func getAllHealthReportsAsync() async throws -> [HealthReport] {
-        try await withCheckedThrowingContinuation { continuation in
-            getAllHealthReports { data in
-                do {
-                    let reports = try JSONDecoder().decode([HealthReport].self, from: data)
-                    continuation.resume(returning: reports)
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-            }
-        }
-    }
-
-    func triggerLockdownAsync() async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            triggerLockdown { success in
-                if success {
-                    continuation.resume()
-                } else {
-                    continuation.resume(throwing: XPCError.connectionFailed)
-                }
-            }
-        }
-    }
-
-    func getSiteProfilesAsync() async throws -> [SiteProfile] {
-        try await withCheckedThrowingContinuation { continuation in
-            getSiteProfiles { data in
-                do {
-                    let profiles = try JSONDecoder().decode([SiteProfile].self, from: data)
-                    continuation.resume(returning: profiles)
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-            }
-        }
-    }
-
-    func switchSiteProfileAsync(_ profileID: UUID) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            switchSiteProfile(profileID.uuidString) { success, message in
-                if success {
-                    continuation.resume()
-                } else {
-                    continuation.resume(throwing: XPCError.cameraNotFound)
-                }
-            }
-        }
-    }
-}

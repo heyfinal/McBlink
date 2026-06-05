@@ -17,9 +17,11 @@ struct SettingsView: View {
 
             StorageSettingsTab()
                 .tabItem { Label("Storage", systemImage: "externaldrive") }
+                .environmentObject(appState)
 
             NotificationsSettingsTab()
                 .tabItem { Label("Notifications", systemImage: "bell") }
+                .environmentObject(appState)
 
             OffsiteSyncSettingsTab()
                 .tabItem { Label("Offsite Sync", systemImage: "icloud") }
@@ -29,6 +31,7 @@ struct SettingsView: View {
 
             IntegrationsSettingsTab()
                 .tabItem { Label("Integrations", systemImage: "puzzlepiece.extension") }
+                .environmentObject(appState)
 
             AboutSettingsTab()
                 .tabItem { Label("About", systemImage: "info.circle") }
@@ -89,6 +92,10 @@ private struct CamerasSettingsTab: View {
             ) { profile in
                 Task {
                     try? await appState.xpcClient.addCamera(profile)
+                    if !profile.password.isEmpty {
+                        try? await appState.xpcClient.storeCameraCredential(
+                            profile.id, password: profile.password)
+                    }
                     await appState.loadCameras()
                 }
             }
@@ -99,6 +106,10 @@ private struct CamerasSettingsTab: View {
             ) { updated in
                 Task {
                     try? await appState.xpcClient.addCamera(updated)
+                    if !updated.password.isEmpty {
+                        try? await appState.xpcClient.storeCameraCredential(
+                            updated.id, password: updated.password)
+                    }
                     await appState.loadCameras()
                 }
             }
@@ -197,10 +208,8 @@ private struct CameraEditSheet: View {
 
 private struct StorageSettingsTab: View {
 
+    @EnvironmentObject private var appState: AppState
     @AppStorage("storageBasePath") private var storageBasePath: String = ""
-    @AppStorage("retentionDays") private var retentionDays: Double = 30
-    @AppStorage("maxDiskGB") private var maxDiskGB: Double = 500
-    @AppStorage("encryptionEnabled") private var encryptionEnabled: Bool = true
 
     var body: some View {
         Form {
@@ -223,17 +232,33 @@ private struct StorageSettingsTab: View {
 
             Section("Retention") {
                 VStack(alignment: .leading) {
-                    Text("Keep recordings for \(Int(retentionDays)) days")
-                    Slider(value: $retentionDays, in: 1...365, step: 1)
+                    Text("Keep recordings for \(appState.settings.retentionDays) days")
+                    Slider(
+                        value: Binding(
+                            get: { Double(appState.settings.retentionDays) },
+                            set: { val in
+                                var s = appState.settings
+                                s.retentionDays = Int(val)
+                                appState.saveSettings(s)
+                            }
+                        ),
+                        in: 1...365, step: 1
+                    )
                 }
                 VStack(alignment: .leading) {
-                    Text("Max disk usage: \(Int(maxDiskGB)) GB")
-                    Slider(value: $maxDiskGB, in: 10...2000, step: 10)
+                    Text("Max disk usage: \(appState.settings.maxDiskGB) GB")
+                    Slider(
+                        value: Binding(
+                            get: { Double(appState.settings.maxDiskGB) },
+                            set: { val in
+                                var s = appState.settings
+                                s.maxDiskGB = Int(val)
+                                appState.saveSettings(s)
+                            }
+                        ),
+                        in: 10...2000, step: 10
+                    )
                 }
-            }
-
-            Section("Security") {
-                Toggle("Encrypt recordings (AES-256)", isOn: $encryptionEnabled)
             }
         }
         .formStyle(.grouped)
@@ -244,48 +269,59 @@ private struct StorageSettingsTab: View {
 
 private struct NotificationsSettingsTab: View {
 
-    @AppStorage("notifyPerson")     private var notifyPerson: Bool = true
-    @AppStorage("notifyVehicle")    private var notifyVehicle: Bool = true
-    @AppStorage("notifyAnimal")     private var notifyAnimal: Bool = false
-    @AppStorage("notifyPackage")    private var notifyPackage: Bool = true
-    @AppStorage("notifyGlassBreak") private var notifyGlassBreak: Bool = true
-    @AppStorage("notifySmokeAlarm") private var notifySmokeAlarm: Bool = true
-    @AppStorage("notifyBark")       private var notifyBark: Bool = false
-    @AppStorage("quietHoursStart")  private var quietHoursStart: Double = 23 * 3600
-    @AppStorage("quietHoursEnd")    private var quietHoursEnd: Double = 6 * 3600
+    @EnvironmentObject private var appState: AppState
 
     var body: some View {
         Form {
             Section("Detection Classes") {
-                Toggle("Person detected",      isOn: $notifyPerson)
-                Toggle("Vehicle detected",     isOn: $notifyVehicle)
-                Toggle("Animal detected",      isOn: $notifyAnimal)
-                Toggle("Package detected",     isOn: $notifyPackage)
-                Toggle("Glass break detected", isOn: $notifyGlassBreak)
-                Toggle("Smoke alarm detected", isOn: $notifySmokeAlarm)
-                Toggle("Bark detected",        isOn: $notifyBark)
+                Toggle("Person detected",      isOn: settingsBinding(\.notifyPerson))
+                Toggle("Vehicle detected",     isOn: settingsBinding(\.notifyVehicle))
+                Toggle("Animal detected",      isOn: settingsBinding(\.notifyAnimal))
+                Toggle("Package detected",     isOn: settingsBinding(\.notifyPackage))
+                Toggle("Glass break detected", isOn: settingsBinding(\.notifyGlassBreak))
+                Toggle("Smoke alarm detected", isOn: settingsBinding(\.notifySmokeAlarm))
+                Toggle("Bark detected",        isOn: settingsBinding(\.notifyBark))
             }
 
             Section("Quiet Hours") {
                 DatePicker(
                     "Start",
                     selection: Binding(
-                        get: { timeIntervalToDate(quietHoursStart) },
-                        set: { quietHoursStart = $0.timeIntervalSince(Calendar.current.startOfDay(for: $0)) }
+                        get: { timeIntervalToDate(appState.settings.quietHoursStart) },
+                        set: { newDate in
+                            var s = appState.settings
+                            s.quietHoursStart = newDate.timeIntervalSince(Calendar.current.startOfDay(for: newDate))
+                            appState.saveSettings(s)
+                        }
                     ),
                     displayedComponents: .hourAndMinute
                 )
                 DatePicker(
                     "End",
                     selection: Binding(
-                        get: { timeIntervalToDate(quietHoursEnd) },
-                        set: { quietHoursEnd = $0.timeIntervalSince(Calendar.current.startOfDay(for: $0)) }
+                        get: { timeIntervalToDate(appState.settings.quietHoursEnd) },
+                        set: { newDate in
+                            var s = appState.settings
+                            s.quietHoursEnd = newDate.timeIntervalSince(Calendar.current.startOfDay(for: newDate))
+                            appState.saveSettings(s)
+                        }
                     ),
                     displayedComponents: .hourAndMinute
                 )
             }
         }
         .formStyle(.grouped)
+    }
+
+    private func settingsBinding(_ keyPath: WritableKeyPath<AppSettings, Bool>) -> Binding<Bool> {
+        Binding(
+            get: { appState.settings[keyPath: keyPath] },
+            set: { newValue in
+                var s = appState.settings
+                s[keyPath: keyPath] = newValue
+                appState.saveSettings(s)
+            }
+        )
     }
 
     private func timeIntervalToDate(_ interval: Double) -> Date {
@@ -300,9 +336,10 @@ private struct OffsiteSyncSettingsTab: View {
     @AppStorage("iCloudSyncEnabled")    private var iCloudEnabled: Bool = false
     @AppStorage("s3SyncEnabled")        private var s3Enabled: Bool = false
     @AppStorage("s3Bucket")             private var s3Bucket: String = ""
-    @AppStorage("s3AccessKey")          private var s3AccessKey: String = ""
-    @AppStorage("s3Secret")             private var s3Secret: String = ""
     @AppStorage("syncOnDetection")      private var syncOnDetection: Bool = false
+
+    @State private var s3AccessKey: String = ""
+    @State private var s3Secret: String = ""
 
     var body: some View {
         Form {
@@ -315,7 +352,9 @@ private struct OffsiteSyncSettingsTab: View {
                 if s3Enabled {
                     TextField("Bucket", text: $s3Bucket)
                     TextField("Access Key ID", text: $s3AccessKey)
+                        .onChange(of: s3AccessKey) { _, _ in saveS3Creds() }
                     SecureField("Secret Access Key", text: $s3Secret)
+                        .onChange(of: s3Secret) { _, _ in saveS3Creds() }
                 }
             }
 
@@ -324,6 +363,32 @@ private struct OffsiteSyncSettingsTab: View {
             }
         }
         .formStyle(.grouped)
+        .onAppear { loadS3Creds() }
+    }
+
+    private static var s3CredsURL: URL {
+        FileManager.default
+            .urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            .appendingPathComponent("McBlink/.s3creds")
+    }
+
+    private func loadS3Creds() {
+        guard let data = try? Data(contentsOf: Self.s3CredsURL),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: String]
+        else { return }
+        s3AccessKey = obj["accessKey"] ?? ""
+        s3Secret = obj["secret"] ?? ""
+    }
+
+    private func saveS3Creds() {
+        let obj: [String: String] = ["accessKey": s3AccessKey, "secret": s3Secret]
+        guard let data = try? JSONSerialization.data(withJSONObject: obj) else { return }
+        let url = Self.s3CredsURL
+        try? FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? data.write(to: url, options: [.atomic, .completeFileProtection])
+        try? FileManager.default.setAttributes(
+            [.posixPermissions: 0o600], ofItemAtPath: url.path)
     }
 }
 
@@ -375,9 +440,6 @@ private struct RemoteAccessSettingsTab: View {
 private struct IntegrationsSettingsTab: View {
 
     @EnvironmentObject private var appState: AppState
-    @AppStorage("haMQTTHost")   private var haMQTTHost: String = ""
-    @AppStorage("haMQTTPort")   private var haMQTTPort: Double = 1883
-    @AppStorage("haMQTTTopic")  private var haMQTTTopic: String = "homeassistant/mcblink"
     @State private var showBlinkConnect: Bool = false
     @State private var blinkConnected: Bool = false
 
@@ -397,15 +459,36 @@ private struct IntegrationsSettingsTab: View {
             }
 
             Section("Home Assistant — MQTT") {
-                TextField("Host", text: $haMQTTHost)
+                TextField("Host", text: Binding(
+                    get: { appState.settings.mqttHost },
+                    set: { val in
+                        var s = appState.settings
+                        s.mqttHost = val
+                        appState.saveSettings(s)
+                    }
+                ))
                 HStack {
                     Text("Port")
                     Spacer()
-                    TextField("Port", value: $haMQTTPort, format: .number)
+                    TextField("Port", value: Binding(
+                        get: { appState.settings.mqttPort },
+                        set: { val in
+                            var s = appState.settings
+                            s.mqttPort = val
+                            appState.saveSettings(s)
+                        }
+                    ), format: .number)
                         .frame(width: 70)
                         .multilineTextAlignment(.trailing)
                 }
-                TextField("Topic Prefix", text: $haMQTTTopic)
+                TextField("Topic Prefix", text: Binding(
+                    get: { appState.settings.mqttTopicPrefix },
+                    set: { val in
+                        var s = appState.settings
+                        s.mqttTopicPrefix = val
+                        appState.saveSettings(s)
+                    }
+                ))
             }
 
             Section("Shortcuts") {

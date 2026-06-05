@@ -10,6 +10,12 @@ import Network
 
 actor AlertManager {
 
+    private let db: DatabaseManager
+
+    init(db: DatabaseManager) {
+        self.db = db
+    }
+
     // MARK: - Notification permission
 
     func requestNotificationPermission() async {
@@ -20,7 +26,7 @@ actor AlertManager {
     // MARK: - Detection alert
 
     func sendDetectionAlert(event: DetectionEvent, cameraName: String) async {
-        guard !inQuietHours() else { return }
+        guard await !inQuietHours() else { return }
 
         let className = event.detectedClasses.first?.rawValue.capitalized ?? "Object"
         let formatter = DateFormatter()
@@ -42,7 +48,7 @@ actor AlertManager {
         try? await UNUserNotificationCenter.current().add(request)
 
         // Also publish via MQTT if configured.
-        if let (host, port, prefix) = mqttConfig() {
+        if let (host, port, prefix) = await mqttConfig() {
             let topic   = "\(prefix)/detection/\(event.cameraID.uuidString)"
             let payload = try? JSONEncoder().encode(event)
             await publishMQTT(host: host, port: port, topic: topic, payload: payload ?? Data())
@@ -53,7 +59,7 @@ actor AlertManager {
 
     /// Plain-motion notification for ESP32-CAM cameras (no Vision pipeline, no clip).
     func sendMotionAlert(cameraID: UUID, cameraName: String) async {
-        guard !inQuietHours() else { return }
+        guard await !inQuietHours() else { return }
 
         let content = UNMutableNotificationContent()
         content.title    = "McBlink: Motion detected"
@@ -68,7 +74,7 @@ actor AlertManager {
         )
         try? await UNUserNotificationCenter.current().add(request)
 
-        if let (host, port, prefix) = mqttConfig() {
+        if let (host, port, prefix) = await mqttConfig() {
             let topic   = "\(prefix)/motion/\(cameraID.uuidString)"
             let payload = (try? JSONEncoder().encode(["camera": cameraName, "ts": ISO8601DateFormatter().string(from: Date())])) ?? Data()
             await publishMQTT(host: host, port: port, topic: topic, payload: payload)
@@ -78,7 +84,7 @@ actor AlertManager {
     // MARK: - Camera offline alert
 
     func sendCameraOfflineAlert(cameraID: UUID, cameraName: String) async {
-        guard !inQuietHours() else { return }
+        guard await !inQuietHours() else { return }
 
         let content = UNMutableNotificationContent()
         content.title    = "McBlink: Camera offline"
@@ -97,7 +103,7 @@ actor AlertManager {
     // MARK: - Storage alert
 
     func sendStorageAlert(percentUsed: Double) async {
-        guard !inQuietHours() else { return }
+        guard await !inQuietHours() else { return }
         guard percentUsed > 90 else { return }
 
         let content = UNMutableNotificationContent()
@@ -120,7 +126,7 @@ actor AlertManager {
     func sendLockdownAlert() async {
         let content = UNMutableNotificationContent()
         content.title             = "McBlink: LOCKDOWN ACTIVATED"
-        content.body              = "All cameras armed. Offsite sync triggered."
+        content.body              = "All cameras armed. Remote access disabled."
         content.sound             = .defaultCritical
         content.interruptionLevel = .timeSensitive
 
@@ -134,43 +140,36 @@ actor AlertManager {
 
     // MARK: - Quiet hours
 
-    private func inQuietHours() -> Bool {
-        let defaults = UserDefaults.standard
-        guard
-            let start = defaults.object(forKey: "quietHoursStart") as? DateComponents,
-            let end   = defaults.object(forKey: "quietHoursEnd")   as? DateComponents,
-            let sh    = start.hour, let sm = start.minute,
-            let eh    = end.hour,   let em = end.minute
-        else { return false }
+    private func inQuietHours() async -> Bool {
+        guard let settings = try? await db.fetchSettings() else { return false }
+        let startSecs = settings.quietHoursStart
+        let endSecs   = settings.quietHoursEnd
+        guard startSecs != endSecs else { return false }
 
-        let cal     = Calendar.current
-        let now     = Date()
-        let nowComps = cal.dateComponents([.hour, .minute], from: now)
-        guard let nh = nowComps.hour, let nm = nowComps.minute else { return false }
+        let cal  = Calendar.current
+        let now  = Date()
+        let comps = cal.dateComponents([.hour, .minute], from: now)
+        guard let h = comps.hour, let m = comps.minute else { return false }
 
-        let nowMins   = nh * 60 + nm
-        let startMins = sh * 60 + sm
-        let endMins   = eh * 60 + em
+        let nowMins   = h * 60 + m
+        let startMins = Int(startSecs) / 60
+        let endMins   = Int(endSecs) / 60
 
         if startMins <= endMins {
             return nowMins >= startMins && nowMins < endMins
         } else {
-            // Overnight window (e.g. 22:00–06:00)
             return nowMins >= startMins || nowMins < endMins
         }
     }
 
     // MARK: - MQTT config helper
 
-    private func mqttConfig() -> (host: String, port: UInt16, prefix: String)? {
-        let defaults = UserDefaults.standard
-        guard
-            let host   = defaults.string(forKey: "mqttHost"),
-            let prefix = defaults.string(forKey: "mqttTopicPrefix"),
-            !host.isEmpty
+    private func mqttConfig() async -> (host: String, port: UInt16, prefix: String)? {
+        guard let settings = try? await db.fetchSettings(),
+              !settings.mqttHost.isEmpty
         else { return nil }
-        let port = UInt16(defaults.integer(forKey: "mqttPort").clamped(to: 1...65535))
-        return (host, port, prefix)
+        let port = UInt16(settings.mqttPort.clamped(to: 1...65535))
+        return (settings.mqttHost, port, settings.mqttTopicPrefix)
     }
 
     // MARK: - MQTT publish (raw TCP, no library)
@@ -191,7 +190,10 @@ actor AlertManager {
                 host: NWEndpoint.Host(host),
                 port: NWEndpoint.Port(rawValue: port)!
             )
-            let conn = NWConnection(to: endpoint, using: .tcp)
+            // Use TLS when the configured port is the MQTT-over-TLS default (8883).
+            // Plain TCP on port 1883 remains available for LAN-only brokers.
+            let params: NWParameters = (port == 8883) ? .tls : .tcp
+            let conn = NWConnection(to: endpoint, using: params)
 
             conn.stateUpdateHandler = { state in
                 switch state {

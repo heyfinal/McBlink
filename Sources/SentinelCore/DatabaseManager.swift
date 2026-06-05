@@ -17,30 +17,43 @@ actor DatabaseManager {
     /// `inMemory: true` opens a transient in-memory database (used by tests so
     /// they never touch the real catalog); the file path uses WAL as before.
     init(inMemory: Bool = false) {
+        dbQueue = Self.openDatabase(inMemory: inMemory)
+        try? Self.runMigrations(on: dbQueue)
+    }
+
+    private static func openDatabase(inMemory: Bool) -> DatabaseQueue {
         do {
             var config = Configuration()
             config.prepareDatabase { db in
                 try db.execute(sql: "PRAGMA foreign_keys = ON")
             }
             if inMemory {
-                dbQueue = try DatabaseQueue(configuration: config)
-            } else {
-                let appSupport = FileManager.default
-                    .urls(for: .applicationSupportDirectory, in: .userDomainMask)
-                    .first!
-                    .appendingPathComponent("McBlink/db", isDirectory: true)
-                try FileManager.default.createDirectory(
-                    at: appSupport, withIntermediateDirectories: true, attributes: nil)
-                let dbPath = appSupport.appendingPathComponent("catalog.sqlite").path
-                var fileConfig = config
-                fileConfig.prepareDatabase { db in
-                    try db.execute(sql: "PRAGMA journal_mode = WAL")
-                }
-                dbQueue = try DatabaseQueue(path: dbPath, configuration: fileConfig)
+                return try DatabaseQueue(configuration: config)
             }
-            try Self.runMigrations(on: dbQueue)
+            let appSupport = FileManager.default
+                .urls(for: .applicationSupportDirectory, in: .userDomainMask)
+                .first!
+                .appendingPathComponent("McBlink/db", isDirectory: true)
+            try FileManager.default.createDirectory(
+                at: appSupport, withIntermediateDirectories: true, attributes: nil)
+            let dbPath = appSupport.appendingPathComponent("catalog.sqlite").path
+            var fileConfig = config
+            fileConfig.prepareDatabase { db in
+                try db.execute(sql: "PRAGMA foreign_keys = ON")
+                try db.execute(sql: "PRAGMA journal_mode = WAL")
+            }
+            do {
+                return try DatabaseQueue(path: dbPath, configuration: fileConfig)
+            } catch {
+                NSLog("[McBlink] DB corrupted, recovering: %@", String(describing: error))
+                let backup = dbPath + ".corrupt-\(Int(Date().timeIntervalSince1970))"
+                try? FileManager.default.moveItem(atPath: dbPath, toPath: backup)
+                return try DatabaseQueue(path: dbPath, configuration: fileConfig)
+            }
         } catch {
-            fatalError("DatabaseManager: failed to open database — \(error)")
+            NSLog("[McBlink] CRITICAL: DB init failed, using in-memory fallback: %@",
+                  String(describing: error))
+            return try! DatabaseQueue()
         }
     }
 
@@ -132,9 +145,24 @@ actor DatabaseManager {
         }
 
         migrator.registerMigration("v2") { db in
-            // Lower default retention from 30 → 7 days on existing installs.
             try db.execute(sql: """
                 UPDATE site_profiles SET retention_days = 7 WHERE retention_days = 30
+            """)
+        }
+
+        migrator.registerMigration("v3") { db in
+            try db.execute(sql: """
+                CREATE INDEX IF NOT EXISTS idx_health_log_timestamp
+                ON health_log (camera_id, timestamp)
+            """)
+        }
+
+        migrator.registerMigration("v4") { db in
+            try db.execute(sql: """
+                CREATE TABLE IF NOT EXISTS app_settings (
+                    id          INTEGER PRIMARY KEY CHECK (id = 1),
+                    json_blob   TEXT NOT NULL
+                )
             """)
         }
 
@@ -527,6 +555,31 @@ actor DatabaseManager {
         }
     }
 
+    // MARK: - AppSettings CRUD
+
+    func fetchSettings() throws -> AppSettings? {
+        try dbQueue.read { db in
+            guard let row = try Row.fetchOne(
+                db, sql: "SELECT json_blob FROM app_settings WHERE id = 1"
+            ) else { return nil }
+            let blob: String = row["json_blob"]
+            return try fromJSON(AppSettings.self, string: blob)
+        }
+    }
+
+    func upsertSettings(_ settings: AppSettings) throws {
+        let blob = try toJSON(settings)
+        try dbQueue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO app_settings (id, json_blob) VALUES (1, ?)
+                    ON CONFLICT(id) DO UPDATE SET json_blob = excluded.json_blob
+                """,
+                arguments: [blob]
+            )
+        }
+    }
+
     // MARK: - Health Log
 
     func insertHealthLog(
@@ -551,6 +604,21 @@ actor DatabaseManager {
                     storageUsed
                 ]
             )
+        }
+    }
+
+    // MARK: - Health log retention
+
+    @discardableResult
+    func deleteHealthLogsOlderThan(days: Int) throws -> Int {
+        let cutoff = Date().addingTimeInterval(-Double(days) * 86_400)
+            .timeIntervalSinceReferenceDate
+        return try dbQueue.write { db in
+            try db.execute(
+                sql: "DELETE FROM health_log WHERE timestamp < ?",
+                arguments: [cutoff]
+            )
+            return db.changesCount
         }
     }
 
